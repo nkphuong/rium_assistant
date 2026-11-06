@@ -194,7 +194,7 @@ In scope: mọi thứ trong spec v2. Out of scope: ô gõ câu hỏi / LLM, gi�
 
 ## Progress
 
-- [ ] Task 0 · [ ] Task 1 · [ ] Task 2 · [ ] Task 3 · [ ] Task 4 · [ ] Task 5
+- [x] Task 0 · [x] Task 1 · [x] Task 2 · [x] Task 3 · [x] Task 4 · [ ] Task 5
 
 ## Decisions
 
@@ -209,4 +209,17 @@ In scope: mọi thứ trong spec v2. Out of scope: ô gõ câu hỏi / LLM, gi�
 
 ## Result
 
-(điền sau khi làm xong)
+Commit: `3ccdee4` (Task 0), `7bae43a` (Task 1), `005bb0d` (Task 2),
+`06f49f8` (Task 3), `8b6053b` (Task 4).
+
+Đã kiểm chứng: `cargo test` 12 passed; `npm run test:ui` 3 pass. E2E trên mock:
+tâm lõi giống hệt trước/trong/sau khi mở; Esc và Enter; đóng-mở lại nhanh chỉ
+một lượt nói; chuyển trang giữa lúc đang nói; 0 bể; reduced motion. Build app
+thật và tự mở lần đầu trong ngày (chỉ đọc, không ghi DB).
+
+Hạn chế (hoãn, nhỏ): lỗi `get_briefing` làm hỏng cả trang chủ; thẻ được nhắc
+không tự cuộn vào tầm nhìn; briefing dài không cuộn trong khung; Esc chưa được
+người dùng thử tay trên app thật.
+
+Việc tiếp: người dùng nghiệm thu → `superpowers:finishing-a-development-branch`,
+chuyển plan sang `completed/`.

@@ -21,6 +21,15 @@ playwright-cli -s=app --raw eval "window.__TAURI__.core.invoke('list_tanks')"
   riêng cho test (chưa làm).
 - Đã bắt được lỗi thật: trường bắt buộc gửi `null` → serde báo lỗi tiếng Anh.
 
+## E2E không đụng DB thật (mock)
+
+- `python -m http.server 8766 --directory src`, rồi playwright-cli mở
+  `http://127.0.0.1:8766/index.html`. `api.js` tự dùng `mock.js` (dữ liệu trong
+  bộ nhớ, xóa được qua UI). playwright-cli chặn `file:` nên phải qua HTTP.
+- Test logic giao diện thuần: `npm run test:ui`.
+- Shell Bash của agent không có `cargo` trong PATH → dùng PowerShell với
+  `$env:Path = "$env:USERPROFILE\.cargo\bin;" + $env:Path`.
+
 ## Build
 
 - Cần Rust (msvc) + Visual Studio Build Tools workload VCTools (cài bằng winget).
