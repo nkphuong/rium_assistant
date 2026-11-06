@@ -44,7 +44,7 @@ Mới nhất ở trên. Mỗi phiên một mục:
   số bể, rồi `SMALL_TALK` (không chứa số liệu); bỏ qua khi đang nói; giữ tối đa 3
   bong bóng thêm. Lõi giờ là `<button aria-label="Nói chuyện với Bọt">`.
   Học được: kiểm thử bằng cách đổi hash 2 lần liên tiếp gây 2 lần render chồng → kết quả nhiễu; đo trên trang đã ổn định.
-- Màn hình chính v2 — Bọt lên tiếng ([plan](../plans/active/home-v2-bot-speaks.md)):
+- Màn hình chính v2 — Bọt lên tiếng ([plan](../plans/completed/home-v2-bot-speaks.md)):
   lõi cố định giữa màn hình; bể là thẻ hình bể + thẻ "+ Thêm bể". Bấm lõi → bể
   trượt sang cột trái, vùng nói mở ra từ lõi, khung HUD cam, Bọt chào theo giờ
   (`src/talk.js`) rồi đọc briefing. Tự mở lần đầu trong ngày (`localStorage`
@@ -52,11 +52,19 @@ Mới nhất ở trên. Mỗi phiên một mục:
 - Vướng mắc (v2): `node --test src/` không chạy trên Node 22 (thư mục bị hiểu là
   module) → dùng glob `"src/**/*.test.js"`. FLIP bị transition sẵn có của thẻ
   nuốt mất bước nhảy → đặt `transition:none` trước khi đảo vị trí.
+- Cuối phiên: review toàn nhánh → sửa `da78ee6` (briefing dài cuộn được, chữ mờ
+  đủ tương phản, `aria-expanded`). Shortcut desktop trỏ bản đã cài
+  `%LOCALAPPDATA%\Bọt` → phải chạy lại bộ cài (`setup.exe /S`) sau mỗi build mới
+  mới thấy thay đổi; đã cài bản mới, xóa `src-tauri\target\debug` (4,7 GB).
+- Vướng mắc (cuối phiên): agent con và chính controller để sót máy chủ
+  `python -m http.server` chạy nền (cổng 8765/8766) → trước khi báo xong, kiểm
+  tra cổng đang nghe và tắt hết tiến trình nền đã bật.
 - Phiên sau: người dùng thử tay Esc trên app thật (một lần lỡ phím lúc gắn CDP,
   không tái hiện); các điểm nhỏ còn hoãn: lỗi `get_briefing` làm hỏng cả trang
-  chủ; thẻ được nhắc không tự cuộn vào tầm nhìn; briefing dài không cuộn trong
-  khung. Tùy chọn đặt wordmark vào header app; tra cứu nhãn hiệu trước khi
-  công bố; ô ngày vẫn hiện `mm/dd/yyyy` theo locale WebView2.
+  chủ; thẻ được nhắc không tự cuộn vào tầm nhìn; chấm trạng thái chỉ bằng màu.
+  Tùy chọn đặt wordmark vào header app; tra cứu nhãn hiệu trước khi công bố;
+  ô ngày vẫn hiện `mm/dd/yyyy` theo locale WebView2. Brainstorm đợt 2 (Tuya)
+  vẫn đang chờ.
 
 ## 2026-11-06 (chiều) — Thiết kế, đặt tên, triển khai MVP 1
 

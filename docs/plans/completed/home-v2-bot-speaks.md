@@ -20,7 +20,7 @@ Lời trợ lý vẫn sinh ở core Rust (`briefing.rs`), chỉ đổi câu ch�
 
 ## Status
 
-Active
+Completed
 
 ## Outcome
 
@@ -194,7 +194,7 @@ In scope: mọi thứ trong spec v2. Out of scope: ô gõ câu hỏi / LLM, gi�
 
 ## Progress
 
-- [x] Task 0 · [x] Task 1 · [x] Task 2 · [x] Task 3 · [x] Task 4 · [ ] Task 5
+- [x] Task 0 · [x] Task 1 · [x] Task 2 · [x] Task 3 · [x] Task 4 · [x] Task 5
 
 ## Decisions
 
@@ -210,7 +210,9 @@ In scope: mọi thứ trong spec v2. Out of scope: ô gõ câu hỏi / LLM, gi�
 ## Result
 
 Commit: `3ccdee4` (Task 0), `7bae43a` (Task 1), `005bb0d` (Task 2),
-`06f49f8` (Task 3), `8b6053b` (Task 4).
+`06f49f8` (Task 3), `8b6053b` (Task 4), `9af4afb` (Task 5), `da78ee6` (sửa sau
+review toàn nhánh: briefing dài cuộn trong `.hud-body`, `--faint #646e78` đạt 4.75:1,
+lõi có `aria-expanded`).
 
 Đã kiểm chứng: `cargo test` 12 passed; `npm run test:ui` 3 pass. E2E trên mock:
 tâm lõi giống hệt trước/trong/sau khi mở; Esc và Enter; đóng-mở lại nhanh chỉ
@@ -218,8 +220,9 @@ một lượt nói; chuyển trang giữa lúc đang nói; 0 bể; reduced motio
 thật và tự mở lần đầu trong ngày (chỉ đọc, không ghi DB).
 
 Hạn chế (hoãn, nhỏ): lỗi `get_briefing` làm hỏng cả trang chủ; thẻ được nhắc
-không tự cuộn vào tầm nhìn; briefing dài không cuộn trong khung; Esc chưa được
-người dùng thử tay trên app thật.
+không tự cuộn vào tầm nhìn; chấm trạng thái chỉ phân biệt bằng màu; độ lệch
+`100vh - 340px` của vùng cuộn là số cố định; Esc chưa được người dùng thử tay
+trên app thật.
 
-Việc tiếp: người dùng nghiệm thu → `superpowers:finishing-a-development-branch`,
-chuyển plan sang `completed/`.
+Kết thúc 2026-11-06: người dùng yêu cầu đóng phiên (commit, push). Bản cài trên
+máy đã cập nhật lên build mới; bản build debug cũ đã xóa.
