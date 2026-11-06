@@ -43,10 +43,9 @@ function overview(t) {
 function briefing() {
   const all = db.tanks.map(overview);
   const lacking = all.filter((o) => o.missing.length);
-  if (!all.length) return [{ text: "Chào bạn, mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.", tank_id: null }];
+  if (!all.length) return [{ text: "Mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.", tank_id: null }];
   if (!lacking.length) return [{ text: all.length === 1 ? `Bể ${all[0].tank.name} đã có hồ sơ đầy đủ.` : `Cả ${all.length} bể đều đã có hồ sơ đầy đủ.`, tank_id: null }];
-  return [{ text: "Chào bạn. Mình xem qua hồ sơ các bể rồi.", tank_id: null },
-    ...lacking.map((o) => ({ text: `${o.tank.name} chưa có ${o.missing.map((m) => LABEL[m]).join(" và ")}. Bạn thêm giúp mình nhé.`, tank_id: o.tank.id }))];
+  return lacking.map((o) => ({ text: `${o.tank.name} chưa có ${o.missing.map((m) => LABEL[m]).join(" và ")}. Bạn thêm giúp mình nhé.`, tank_id: o.tank.id }));
 }
 
 function save(table, row) {
