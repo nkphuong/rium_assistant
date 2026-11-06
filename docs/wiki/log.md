@@ -36,6 +36,12 @@ Mới nhất ở trên. Mỗi phiên một mục:
   cây theo tiền/trung/hậu cảnh; tìm thiết kế có sẵn để hình dung; mua về rồi làm
   theo cảm tính. Khó nhất: **trung hòa** — cá nào sống chung với cá nào, cây nào
   hợp môi trường nào, số lượng bao nhiêu.
+- Quyết định bể mới: app **đề xuất trọn bộ**, người dùng chỉnh sau. Hình dung
+  bằng **nguyên lý bố cục** (tam giác, lõm/lồi/đảo, số đá lẻ, đường dẫn mắt,
+  chiều sâu), không phải ảnh thật. Người dùng **chấp nhận dùng AI online**
+  (vd. Claude API, có phí nhỏ mỗi lần) cho phần đề xuất.
+- Review (ponytail-review): gộp quy tắc quy trình về một nơi (`AGENTS.md`),
+  viết lại `docs/README.md` thành bản đồ của dự án này.
 - Vướng mắc: superpowers mặc định lưu spec/plan ngoài cấu trúc Harness; skill Harness không tự hiện trong Claude Code → giải quyết bằng decision 0001.
 - Phiên sau: tiếp tục brainstorm (thiết kế bể mới, lịch thay nước, cách tính
   sức khỏe, UI) → viết spec vào `docs/product/` → plan.

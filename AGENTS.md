@@ -53,21 +53,32 @@ Mỗi phiên làm việc phải tiếp nối được từ repo, không dựa v�
 
 Ranh giới product / decisions / plans / wiki: xem `docs/wiki/README.md`.
 
-## Quy trình (chi tiết: `docs/decisions/0001-dev-workflow.md`)
+## Quy trình (lý do: `docs/decisions/0001-dev-workflow.md`)
+
+Đây là nơi duy nhất giữ quy tắc quy trình; sửa ở đây, không chép sang nơi khác.
 
 1. Ý tưởng mới → `superpowers:brainstorming`; spec lưu `docs/product/<domain>.md`
    (KHÔNG dùng `docs/superpowers/specs/`).
 2. Spec duyệt → `superpowers:writing-plans`; plan lưu `docs/plans/active/<slug>.md`
    theo khung `docs/templates/exec-plan.md` (KHÔNG dùng `docs/superpowers/plans/`).
 3. Thực thi → `superpowers:subagent-driven-development`; viết code theo
-   `ponytail` mức `full`. Phạm vi spec đã duyệt không bị Ponytail cắt.
+   `ponytail` mức `full`. Phạm vi spec đã duyệt không bị Ponytail cắt; Ponytail
+   không áp dụng cho brainstorm; không dùng mức `ultra` khi thực thi plan.
+   Thiết kế/làm UI: skill `design-taste-frontend` (taste-skill v2) cho thẩm mỹ;
+   Ponytail cho code. Không cài thêm design skill khác (tránh chồng hướng dẫn).
+   Nguyên lý motion: `docs/wiki/engineering/motion-references.md`.
 4. Test: logic không tầm thường viết test trước (TDD), ít mà trúng hành vi;
    glue/UI tầm thường không cần test.
 5. Review: trong SDD dùng reviewer của SDD; thay đổi nhỏ ngoài plan dùng
-   `ponytail-review`.
+   `ponytail-review`. Không chạy hai bộ review cho cùng thay đổi. Xử lý phản hồi
+   review: `superpowers:receiving-code-review`.
 6. Kết thúc: `superpowers:finishing-a-development-branch`, plan → `completed/`,
    cập nhật wiki + log.
 7. Skill Harness (`$improve-harness`, `$encode-invariant`, `$onboard-repository`):
    đọc `.agents/skills/<tên>/SKILL.md`.
-8. Vướng mắc của agent ghi vào mục "Vướng mắc" trong log; lặp ≥2 lần → đề xuất
+8. Tìm kiếm trong code/tài liệu: dùng `rg` (ripgrep) thay cho `grep`/`findstr`;
+   tìm file dùng `rg --files` thay cho `find`. Trong Claude Code, công cụ Grep đã
+   chạy ripgrep sẵn.
+9. Vướng mắc của agent ghi vào mục "Vướng mắc" trong log; lặp ≥2 lần → đề xuất
    `$improve-harness`. `shortcut:` trong code → `ponytail-debt` khi lập plan mới.
+   Sau mỗi mốc lớn: `ponytail-audit`, phát hiện thành task trong plan.

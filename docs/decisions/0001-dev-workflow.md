@@ -32,44 +32,13 @@ Xung đột phát hiện được:
 
 ## Decision
 
-**Mỗi công cụ một vai, theo pha:**
+Mỗi công cụ một vai theo pha: brainstorming → spec, writing-plans → plan,
+subagent-driven-development → thực thi, ponytail → cách viết code. Đường dẫn
+theo Harness. Spec quyết định phạm vi, Ponytail quyết định cách làm; TDD quyết
+định thứ tự test, Ponytail quyết định lượng test; mỗi thay đổi chỉ một bộ review.
 
-| Pha | Công cụ chủ trì | Đầu ra |
-|---|---|---|
-| Ý tưởng / phạm vi | `superpowers:brainstorming` | `docs/product/<domain>.md` |
-| Kế hoạch | `superpowers:writing-plans` | `docs/plans/active/<slug>.md` (khung exec-plan của Harness + các task của superpowers) |
-| Thực thi | `superpowers:subagent-driven-development` (hoặc `executing-plans`) | code + test |
-| Cách viết code | `ponytail` (mức `full`) | diff nhỏ nhất |
-| Review | xem quy tắc 4 | |
-| Kết thúc | `superpowers:finishing-a-development-branch` + cập nhật wiki/log | plan → `completed/` |
-
-Quy tắc dung hòa:
-
-1. **Đường dẫn**: spec → `docs/product/`, plan → `docs/plans/active/`, ghi đè
-   mặc định `docs/superpowers/...` của superpowers.
-2. **Phạm vi do spec quyết định, Ponytail quyết định cách làm.** Phạm vi trong
-   spec đã duyệt là "điều người dùng yêu cầu" — Ponytail không được cắt. Ponytail
-   áp dụng cho code, không áp dụng cho brainstorm. Không dùng mức `ultra` khi
-   đang thực thi plan đã duyệt.
-3. **Test**: TDD quyết định *thứ tự* (test trước) cho logic không tầm thường —
-   tính điểm sức khỏe, lịch thay nước, parser giao thức thiết bị, lưu trữ dữ
-   liệu. Ponytail quyết định *lượng*: ít test, kiểm hành vi, không test cho code
-   dán UI/glue tầm thường. Harness: chỉ tuyên bố xong khi có bằng chứng chạy được.
-4. **Review**: khi chạy SDD, dùng reviewer có sẵn của SDD (từng task + review
-   cuối), không chạy thêm review khác. Thay đổi nhỏ ngoài plan: `ponytail-review`.
-   Nhận phản hồi review: `superpowers:receiving-code-review`.
-5. **Skill Harness**: khi cần `$improve-harness`, `$encode-invariant`,
-   `$onboard-repository`, đọc trực tiếp `.agents/skills/<tên>/SKILL.md`.
-
-**Vòng cải tiến lẫn nhau** (các skill bồi đắp cho nhau qua repo):
-
-- Brainstorm/thực thi sinh kiến thức → wiki (`docs/wiki/`), lần sau brainstorm
-  đọc lại.
-- Ponytail để lại `shortcut:` trong code → `ponytail-debt` liệt kê → mục nợ đưa
-  vào plan tiếp theo khi cần nâng cấp.
-- Vướng mắc lặp lại của agent → ghi "Vướng mắc" trong `log.md` → khi lặp ≥2 lần
-  và người dùng đồng ý, chạy `$improve-harness` để sửa hướng dẫn tận gốc.
-- Định kỳ (sau mỗi mốc lớn) `ponytail-audit` → phát hiện thành task trong plan.
+**Quy tắc hiện hành: xem mục "Quy trình" trong `AGENTS.md`** (nơi duy nhất giữ
+quy tắc, để không lệch).
 
 ## Alternatives Considered
 

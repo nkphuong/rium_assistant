@@ -16,4 +16,4 @@ Cách dùng wiki: xem [README.md](README.md). Nhật ký phiên: [log.md](log.md
 
 ## Engineering
 
-_(chưa có)_
+- [engineering/motion-references.md](engineering/motion-references.md) — prompt motion đáng dùng (prompt-motion.com) và nguyên lý chuyển động cho UI HUD.
