@@ -115,3 +115,61 @@ button { font: inherit; color: inherit; cursor: pointer; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .say { opacity: 1; transform: none; }
 }
+
+/* Tank detail */
+.detail { max-width: 1100px; margin: 0 auto; padding: 24px 29px 56px; }
+.back { display: inline-block; margin-bottom: 16px; }
+.dhead { display: flex; align-items: center; gap: 14px; }
+.dtitle { flex: 1; min-width: 0; }
+.dtitle h1 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.dtitle p { color: var(--muted); }
+.dactions { display: flex; gap: 8px; }
+.mini { position: relative; flex: none; width: 34px; height: 34px; }
+.mini i { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--accent); }
+.mini i + i { inset: 12px; border: 0; background: var(--accent); }
+.tabs { display: flex; gap: 24px; margin: 22px 0 18px; border-bottom: 1px solid var(--border); }
+.tabs a, .tabs .soon { padding-bottom: 10px; color: #bbbbbb; transition: color 200ms ease; }
+.tabs a:hover, .tabs a.on { color: var(--text); }
+.tabs a.on { font-weight: 500; }
+.tabs .soon { color: var(--faint); margin-left: auto; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-radius: var(--radius-card); padding: 18px 0; }
+.stat { padding: 0 20px; border-left: 1px solid var(--raised); }
+.stat:first-child { border-left: 0; }
+.stat small { display: block; color: var(--faint); font-size: 12px; }
+.stat b { display: block; font-size: 24px; line-height: 32px; font-weight: 500; white-space: nowrap; }
+.stat em { display: block; font-style: normal; color: var(--muted); font-size: 12px; }
+.profile { margin-top: 16px; color: var(--muted); }
+.notes { margin-top: 8px; max-width: 65ch; }
+.rows { list-style: none; padding: 0; background: var(--surface); border-radius: var(--radius-card); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 20px; border-top: 1px solid var(--raised); }
+.row:first-child { border-top: 0; }
+.row b { display: block; font-weight: 500; }
+.row span { display: block; color: var(--muted); font-size: 12px; }
+.row-actions { display: flex; gap: 16px; }
+.empty { color: var(--muted); margin-bottom: 4px; }
+.add { margin-top: 16px; }
+
+/* Dialogs */
+dialog { border: 0; padding: 0; background: var(--surface); color: var(--text); border-radius: var(--radius-card);
+  width: min(480px, calc(100vw - 32px)); box-shadow: 0 16px 48px rgb(0 0 0 / 0.5); }
+dialog::backdrop { background: rgb(0 0 0 / 0.6); }
+.sheet { padding: 22px; }
+.sheet h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.fields { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.fields label { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.fields input, .fields select, .fields textarea {
+  font: inherit; color: var(--text); background: var(--ground); border: 1px solid var(--control);
+  border-radius: 10px; height: 36px; padding: 0 12px; color-scheme: dark;
+}
+.fields textarea { height: auto; padding: 8px 12px; resize: vertical; }
+.error { color: var(--negative); min-height: 20px; margin-top: 10px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.pill.danger { border-color: var(--negative); color: var(--negative); }
+
+/* Narrow windows (the app's minimum is 960px; this keeps previews tidy). */
+@media (max-width: 640px) {
+  .stats { grid-template-columns: 1fr 1fr; row-gap: 16px; }
+  .stat:nth-child(3) { border-left: 0; }
+  .tabs { overflow-x: auto; white-space: nowrap; }
+  .dhead { flex-wrap: wrap; }
+}
