@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 
 pub type AppResult<T> = Result<T, String>;
 
+/// SQLite's own messages are English and technical: log them, show a plain Vietnamese one.
 fn db_err(e: rusqlite::Error) -> String {
-    e.to_string()
+    eprintln!("db error: {e}");
+    "Không lưu được dữ liệu, bạn thử lại nhé".into()
 }
 
 /// Enum stored as TEXT: the same lowercase strings in SQL and JSON.
@@ -336,5 +338,13 @@ mod tests {
         let l = list_tanks(&c).unwrap();
         assert_eq!((l[0].animals, l[0].species, l[0].devices), (18, 2, 0));
         assert_eq!(l[0].status, "Chưa có thiết bị");
+    }
+
+    #[test]
+    fn db_errors_are_vietnamese() {
+        let c = db::open_in_memory().unwrap();
+        // tank 999 does not exist: the foreign key fails inside SQLite
+        let e = save_animal(&c, Animal { id: None, tank_id: 999, species: "Neon".into(), count: 1, notes: None }).unwrap_err();
+        assert_eq!(e, "Không lưu được dữ liệu, bạn thử lại nhé");
     }
 }

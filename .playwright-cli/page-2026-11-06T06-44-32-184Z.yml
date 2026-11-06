@@ -1,0 +1,12 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Bọt" [ref=e3] [cursor=pointer]:
+      - /url: "#/"
+    - generic [ref=e4]: 0 bể · cập nhật lúc 13:44
+  - main [ref=e5]:
+    - generic [ref=e19]:
+      - heading "Các bể của bạn" [level=1] [ref=e20]
+      - paragraph [ref=e28]:
+        - generic [ref=e29]: Bọt
+        - text: Chào bạn, mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.
+      - button "Thêm bể" [ref=e31] [cursor=pointer]

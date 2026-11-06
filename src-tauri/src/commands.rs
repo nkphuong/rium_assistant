@@ -7,7 +7,12 @@ use tauri::State;
 type Db<'a> = State<'a, Mutex<Connection>>;
 
 fn with<T>(db: Db, f: impl FnOnce(&Connection) -> AppResult<T>) -> AppResult<T> {
-    let c = db.lock().map_err(|e| e.to_string())?;
+    run(&db, f)
+}
+
+/// A panic in one command poisons the lock; the connection itself is still fine, so keep serving.
+fn run<T>(m: &Mutex<Connection>, f: impl FnOnce(&Connection) -> AppResult<T>) -> AppResult<T> {
+    let c = m.lock().unwrap_or_else(|e| e.into_inner());
     f(&c)
 }
 
@@ -33,3 +38,19 @@ pub fn delete_animal(db: Db, id: i64) -> AppResult<()> { with(db, |c| tanks::del
 pub fn save_plant(db: Db, plant: Plant) -> AppResult<Plant> { with(db, |c| tanks::save_plant(c, plant)) }
 #[tauri::command]
 pub fn delete_plant(db: Db, id: i64) -> AppResult<()> { with(db, |c| tanks::delete_plant(c, id)) }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn poisoned_lock_still_serves() {
+        let m = Mutex::new(crate::db::open_in_memory().unwrap());
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _g = m.lock().unwrap();
+            panic!("poison it");
+        }));
+        assert!(m.is_poisoned());
+        assert_eq!(run(&m, |c| tanks::list_tanks(c)).unwrap().len(), 0);
+    }
+}

@@ -68,7 +68,7 @@ function point(bubbles) {
 /* ---------- Forms ---------- */
 
 // Fields per record type: [key, label, input type or select options, extra attributes]
-const SIZE = 'min="0.1" step="0.1"';
+const SIZE = 'min="0.1" step="any"';
 const FORMS = {
   tank: { cmd: "save_tank", arg: "tank", title: ["Thêm bể", "Sửa bể"], fields: [
     ["name", "Tên bể", "text", "required"], ["kind", "Loại bể", KIND],
@@ -93,10 +93,25 @@ function field([key, label, type, extra = ""], value) {
   return `<label for="${id}">${label}</label>${input}`;
 }
 
+/** One form value for the core. Throws a Vietnamese message for numbers the core cannot even parse. */
+function readField(form, [key, label, type, extra = ""]) {
+  const raw = form.elements[key].value.trim();
+  const required = extra.includes("required");
+  if (type !== "number") return raw === "" && !required ? null : raw; // required text stays "" for the core's message
+  if (raw === "") {
+    if (required) throw `${label} không được để trống`;
+    return null;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) throw `${label} phải là một số`;
+  if (key === "count" && !Number.isInteger(n)) throw "Số lượng phải là số nguyên";
+  return n;
+}
+
 /** Opens the add/edit dialog; resolves to the saved record, or null if cancelled. */
 function openForm(type, record) {
   const spec = FORMS[type], dlg = document.getElementById("form");
-  dlg.innerHTML = `<form class="sheet">
+  dlg.innerHTML = `<form class="sheet" novalidate>
       <h2 id="form-title">${spec.title[record.id == null ? 0 : 1]}</h2>
       <div class="fields">${spec.fields.map((f) => field(f, record[f[0]])).join("")}</div>
       <p id="form-error" class="error" role="alert"></p>
@@ -108,14 +123,9 @@ function openForm(type, record) {
     form.querySelector("[data-cancel]").onclick = () => dlg.close();
     form.onsubmit = async (e) => {
       e.preventDefault();
-      const values = Object.fromEntries(spec.fields.map(([key, , type, extra = ""]) => {
-        const raw = form.elements[key].value.trim();
-        // Required text stays "" so the core answers with its own Vietnamese message.
-        if (raw === "") return [key, extra.includes("required") && type === "text" ? "" : null];
-        return [key, type === "number" ? Number(raw) : raw];
-      }));
       save.disabled = true; // a second click must not save twice
       try {
+        const values = Object.fromEntries(spec.fields.map((f) => [f[0], readField(form, f)]));
         const saved = await call(spec.cmd, { [spec.arg]: { ...record, ...values } });
         dlg.onclose = null;
         dlg.close();
@@ -213,7 +223,7 @@ async function tankPage(id, tab) {
 async function route() {
   const [, page, id, tab] = location.hash.split("/");
   try {
-    if (page === "tank") await tankPage(Number(id), tab);
+    if (page === "tank" && Number.isInteger(Number(id))) await tankPage(Number(id), tab);
     else { current = null; await home(); }
   } catch (e) {
     view.innerHTML = `<section class="home"><p class="say" style="opacity:1;transform:none">${esc(e)}</p><a class="link-btn" href="#/">← Các bể</a></section>`;
@@ -247,10 +257,20 @@ view.addEventListener("click", async (e) => {
       ? `Xóa ${r.name} cùng toàn bộ thiết bị, sinh vật và cây của bể này?`
       : `Xóa ${r.name ?? r.species}?`;
     if (!(await confirmDelete(text))) return;
-    await call(`delete_${del}`, { id: r.id });
+    try {
+      await call(`delete_${del}`, { id: r.id });
+    } catch (err) {
+      return notice(err);
+    }
     if (del === "tank") location.hash = "#/";
     else route();
   }
 });
+
+/** A failure that happened outside a form: show it above the page instead of failing silently. */
+function notice(text) {
+  view.querySelector(".notice")?.remove();
+  view.insertAdjacentHTML("afterbegin", `<p class="notice" role="alert">${esc(text)}</p>`);
+}
 addEventListener("hashchange", route);
 route();
