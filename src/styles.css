@@ -16,7 +16,7 @@
   --control: #cfd6dc;
   --text: #12171c;
   --muted: #4e5a65;
-  --faint: #6b7680;
+  --faint: #646e78;
   --accent: #1d7fc4;
   --accent-rgb: 29 127 196;
   --core: #c85a06; /* the assistant's own colour: core, the mini core */
@@ -138,6 +138,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @keyframes tether { from { transform: scaleX(0); } }
 .hud-frame { grid-row: 2; position: relative; max-width: 560px; padding: 28px 32px; }
+.hud-body { max-height: calc(100vh - 340px); overflow-y: auto; } /* corners stay on the frame; only the text scrolls */
 .hud-frame > i { position: absolute; width: 22px; height: 22px; border: 0 solid var(--core); }
 .hud-frame > i:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
 .hud-frame > i:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }

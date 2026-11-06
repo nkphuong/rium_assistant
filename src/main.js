@@ -33,7 +33,7 @@ async function home() {
   view.innerHTML = `
     <section class="home2">
       <h1 class="sr-only">Các bể của bạn</h1>
-      <button class="core" type="button" aria-label="Nói chuyện với Bọt"><i class="halo" aria-hidden="true"></i>${HUD}</button>
+      <button class="core" type="button" aria-label="Nói chuyện với Bọt" aria-expanded="false"><i class="halo" aria-hidden="true"></i>${HUD}</button>
       <p class="hint">Bấm để nghe Bọt</p>
       <div class="tanks">${tanks.map(tankTile).join("")}<button class="tank-tile add" type="button" data-add="tank"><span class="glass">+ Thêm bể</span></button></div>
       <section class="talk-space" aria-live="polite"></section>
@@ -85,10 +85,11 @@ async function openTalk(home, bubbles) {
   const run = ++talkRun, core = home.querySelector(".core"), hello = greeting(new Date().getHours());
   const pause = (ms) => new Promise((r) => setTimeout(r, ms)).then(() => run === talkRun && home.isConnected);
   shift(home, true);
+  core.setAttribute("aria-expanded", "true");
   home.querySelector(".talk-space").innerHTML = `<i class="tether" aria-hidden="true"></i>
-    <div class="hud-frame"><i></i><i></i><i></i><i></i>
+    <div class="hud-frame"><i></i><i></i><i></i><i></i><div class="hud-body">
       <p class="greet">${hello.split(" ").map((w) => `<span>${esc(w)}</span>`).join(" ")}</p>
-      ${bubbles.map((b) => `<p class="line">${esc(b.text)}</p>`).join("")}</div>`;
+      ${bubbles.map((b) => `<p class="line">${esc(b.text)}</p>`).join("")}</div></div>`;
   const words = home.querySelectorAll(".greet span"), lines = home.querySelectorAll(".talk-space .line");
   if (reduced) return [...words, ...lines].forEach((el) => el.classList.add("on"));
   if (!(await pause(700))) return; // words start only once the space has opened
@@ -111,6 +112,7 @@ async function openTalk(home, bubbles) {
 function closeTalk(home) {
   talkRun++;
   const core = home.querySelector(".core");
+  core.setAttribute("aria-expanded", "false");
   speak(core, 0); // stop talking now
   home.querySelectorAll(".lit").forEach((t) => t.classList.remove("lit"));
   shift(home, false);
