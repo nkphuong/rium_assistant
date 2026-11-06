@@ -8,4 +8,4 @@ scripts/bin/harness.exe
 # Node
 node_modules/
 # taste-skill screenshots
-.taste-skill/inspect/
+.taste-skill/inspect*/
