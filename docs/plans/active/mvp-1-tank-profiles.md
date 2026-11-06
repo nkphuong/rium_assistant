@@ -404,8 +404,10 @@ CREATE TABLE plants (
   form (bấm đúp Lưu → 1 bản ghi), tên loài toàn khoảng trắng → "Tên loài không
   được để trống", thêm sinh vật/thiết bị, sửa số lượng, xóa bể kèm xác nhận.
 - Bản phát hành: `Bọt_0.1.0_x64-setup.exe` (NSIS, 2,35 MB) cài vào
-  `%LOCALAPPDATA%\Bọtium.exe`; nhập 2 bể mẫu, tắt, mở lại → còn nguyên;
-  DB ở `%APPDATA%\com.rium.assistantium.db`, không có `rium.db` trong repo.
+  `%LOCALAPPDATA%\Bọt
+ium.exe`; nhập 2 bể mẫu, tắt, mở lại → còn nguyên;
+  DB ở `%APPDATA%\com.rium.assistant
+ium.db`, không có `rium.db` trong repo.
 - taste-skill: lint 0 FAIL; inspect --app 0 FAIL (ngoại lệ: quầng lõi, bóng của dialog).
 
 Giới hạn: chưa có "biến hình", "số lăn"; bản cài chưa ký số (Windows SmartScreen
