@@ -16,60 +16,29 @@ function stamp(count) {
 
 /* ---------- Home ---------- */
 
-const tankCard = (o) =>
-  `<button class="tank-card" data-tank="${o.tank.id}"><b>${esc(o.tank.name)}</b><span>${esc(o.status)}</span></button>`;
-
-async function home() {
-  const [tanks, bubbles] = await Promise.all([call("list_tanks"), call("get_briefing")]);
-  stamp(tanks.length);
-  const half = Math.ceil(tanks.length / 2);
-  view.innerHTML = `
-    <section class="home">
-      <h1 class="sr-only">Các bể của bạn</h1>
-      <div class="strip">
-        ${tanks.slice(0, half).map(tankCard).join("")}
-        <button class="core" type="button" aria-label="Nói chuyện với Bọt"><i class="halo" aria-hidden="true"></i>${HUD}</button>
-        ${tanks.slice(half).map(tankCard).join("")}
-        <div class="pointer" aria-hidden="true"></div>
-      </div>
-      <div class="talk" aria-live="polite">
-        ${bubbles.map((b, i) => `<p class="say" style="--i:${i}"><span class="who">Bọt</span>${esc(b.text)}</p>`).join("")}
-      </div>
-      <div class="home-actions"><button class="pill" data-add="tank">Thêm bể</button></div>
-    </section>`;
-  point(bubbles);
-  // the core "talks" from the first bubble on, about as long as reading the bubbles aloud (~65ms a character)
-  const chars = bubbles.reduce((n, b) => n + b.text.length, 0);
-  if (bubbles.length) setTimeout(() => speak(view.querySelector(".core"), Math.max(bubbles.length * 700 + 300, chars * 65)), 300);
-  hud(view.querySelector(".core"));
-  chat(view.querySelector(".core"), tanks, bubbles);
+// A tank-shaped tile: glass with water line, substrate and a few decorative stems, then name and status line.
+function tankTile(o) {
+  const t = o.tank;
+  const stems = Array.from({ length: 3 + (t.id % 3) }, (_, k) =>
+    `<i style="left:${18 + k * 44 + ((t.id * 13) % 17)}px;height:${18 + ((k * 7 + t.id * 5) % 22)}px"></i>`).join("");
+  const line = [KIND[t.kind], sizeLine(t)].filter(Boolean).join(" · ");
+  return `<button class="tank-tile" type="button" data-tank="${t.id}"><span class="glass" aria-hidden="true">${stems}</span>
+    <span class="meta"><b>${esc(t.name)}</b><span><i class="dot ${o.missing.length ? "warn" : "ok"}" title="${esc(o.status)}"></i>${esc(line)}</span></span></button>`;
 }
 
-// Things Bọt can say when clicked: its real briefing first, then a few lines that claim no data.
-const SMALL_TALK = [
-  "Mình đây! Bọt vẫn đang trông chừng các bể cho bạn.",
-  "Bạn cần gì cứ gọi, mình nghe nè.",
-  "Có thiết bị mới thì thêm vào, mình theo dõi giúp cho.",
-  "Thay nước đều đặn là cách giữ bể ổn định nhất đó.",
-];
-const MAX_EXTRA = 3; // clicked lines kept on screen; older ones leave
-
-// Clicking the core makes Bọt say the next line in turn (never the same twice running).
-function chat(core, tanks, bubbles) {
-  const lines = [...bubbles.map((b) => b.text), tanks.length ? `Bạn đang có ${tanks.length} bể.` : "Bạn chưa có bể nào, thêm một bể nhé?", ...SMALL_TALK];
-  let next = bubbles.length % lines.length; // start after what was just said on arrival
-  core.addEventListener("click", () => {
-    if (core.classList.contains("speaking")) return; // let it finish the sentence
-    const text = lines[next];
-    next = (next + 1) % lines.length;
-    const talk = view.querySelector(".talk");
-    const p = document.createElement("p");
-    p.className = "say extra";
-    p.innerHTML = `<span class="who">Bọt</span>${esc(text)}`;
-    talk.append(p);
-    talk.querySelectorAll(".extra").forEach((el, i, all) => i < all.length - MAX_EXTRA && el.remove());
-    speak(core, text.length * 65);
-  });
+async function home() {
+  const tanks = await call("list_tanks");
+  stamp(tanks.length);
+  view.innerHTML = `
+    <section class="home2">
+      <h1 class="sr-only">Các bể của bạn</h1>
+      <button class="core" type="button" aria-label="Nói chuyện với Bọt"><i class="halo" aria-hidden="true"></i>${HUD}</button>
+      <p class="hint">Bấm để nghe Bọt</p>
+      <div class="tanks">${tanks.map(tankTile).join("")}<button class="tank-tile add" type="button" data-add="tank"><span class="glass">+ Thêm bể</span></button></div>
+      <section class="talk-space" aria-live="polite"></section>
+      <button class="close-talk" type="button">Về các bể</button>
+    </section>`;
+  hud(view.querySelector(".core"));
 }
 
 // Irregular dash patterns so no layer reads as a perfect ring.
@@ -145,31 +114,6 @@ function speak(core, ms) {
     else { core.classList.remove("speaking"); core.style.removeProperty("--amp"); }
   };
   requestAnimationFrame(tick);
-}
-
-// When a bubble names a tank, draw a line from the core to that tank as the bubble appears.
-function point(bubbles) {
-  const strip = view.querySelector(".strip");
-  const line = strip.querySelector(".pointer");
-  const core = strip.querySelector(".core").getBoundingClientRect();
-  let first = true;
-  bubbles.forEach((b, i) => {
-    if (b.tank_id == null) return;
-    const show = () => {
-      const card = strip.querySelector(`[data-tank="${b.tank_id}"]`);
-      if (!card) return;
-      const r = card.getBoundingClientRect(), s = strip.getBoundingClientRect();
-      const left = r.right < core.left;
-      const from = left ? r.right : core.right, to = left ? core.left : r.left;
-      line.classList.remove("on");
-      Object.assign(line.style, { left: `${from - s.left + strip.scrollLeft}px`, width: `${to - from}px`, transformOrigin: left ? "right" : "left" });
-      requestAnimationFrame(() => line.classList.add("on"));
-    };
-    if (!reduced) setTimeout(show, 300 + i * 700 + 450);
-    else if (first) show(); // no travel: just mark the first tank named
-    first = false;
-  });
-  view.querySelector(".talk").addEventListener("click", (e) => e.currentTarget.classList.add("all"), { once: true });
 }
 
 /* ---------- Forms ---------- */
@@ -350,7 +294,7 @@ async function route() {
     if (page === "tank" && Number.isInteger(Number(id))) await tankPage(Number(id), tab);
     else { current = null; await home(); }
   } catch (e) {
-    view.innerHTML = `<section class="home"><p class="say" style="opacity:1;transform:none">${esc(e)}</p><a class="link-btn" href="#/">← Các bể</a></section>`;
+    view.innerHTML = `<section class="detail"><p class="error">${esc(e)}</p><a class="link-btn" href="#/">← Các bể</a></section>`;
   }
 }
 

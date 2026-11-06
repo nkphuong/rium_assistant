@@ -19,10 +19,13 @@
   --faint: #6b7680;
   --accent: #1d7fc4;
   --accent-rgb: 29 127 196;
-  --core: #c85a06; /* the assistant's own colour: core, its pointer, the mini core */
+  --core: #c85a06; /* the assistant's own colour: core, the mini core */
   --core-rgb: 200 90 6;
   --warning: #a86a00;
   --negative: #c8344f;
+  --ok: #3a9a5b;
+  --sand: #d9c7a6;
+  --plant: #4f9a63;
   --radius-card: 20px;
   --gap: 14px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -65,31 +68,42 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .link-btn { background: none; border: 0; padding: 0; color: var(--muted); }
 .link-btn:hover { color: var(--text); }
 
-/* Home */
-.home {
-  max-width: 1100px; margin: 0 auto; padding: 40px 29px 56px;
-  min-height: calc(100vh - 52px); display: flex; flex-direction: column; justify-content: center;
+/* Home: the core stays put at 42% height in every mode; tanks sit in a row beneath it. */
+.home2 { position: relative; height: calc(100vh - 52px); overflow: hidden; }
+.hint { position: absolute; left: 0; right: 0; top: calc(42% + 70px); text-align: center; color: var(--faint); font-size: 12px; }
+.tanks {
+  position: absolute; left: 0; right: 0; top: calc(42% + 120px);
+  display: flex; align-items: flex-start; justify-content: safe center; gap: 28px; overflow-x: auto; padding: 4px 24px 12px;
 }
-.strip {
-  position: relative; display: flex; align-items: center; justify-content: safe center;
-  gap: var(--gap); min-height: 132px; overflow-x: auto; overflow-y: hidden;
-  padding: 40px 4px; /* room for the breathing halo and the outer tilted rings */
+.tank-tile { flex: none; width: 220px; border: 0; padding: 0; background: none; text-align: left; transition: transform 120ms var(--ease-out); }
+.tank-tile:active { transform: scale(0.98); }
+.tank-tile .glass {
+  display: block; position: relative; height: 92px; overflow: hidden; border-radius: 6px 6px 10px 10px;
+  background: rgb(var(--accent-rgb) / 0.1); border: 2px solid rgb(var(--accent-rgb) / 0.35);
+  transition: background-color 200ms ease;
 }
-.tank-card {
-  flex: none; min-width: 132px; padding: 12px 16px; border-radius: var(--radius-card);
-  background: var(--surface); text-align: left; border: 0;
-  transition: background-color 200ms ease, transform 120ms var(--ease-out);
+.tank-tile:hover .glass { background: rgb(var(--accent-rgb) / 0.16); }
+.tank-tile .glass::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 2px; background: rgb(var(--accent-rgb) / 0.45); } /* water line */
+.tank-tile .glass::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: var(--sand); }
+.tank-tile .glass i { position: absolute; bottom: 16px; width: 6px; border-radius: 3px 3px 0 0; background: var(--plant); }
+.tank-tile .meta { display: block; padding: 10px 2px 0; }
+.tank-tile .meta b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tank-tile .meta span { color: var(--muted); font-size: 13px; }
+.tank-tile .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warning); }
+.tank-tile.add .glass {
+  display: grid; place-items: center; background: none; border: 2px dashed var(--control);
+  color: var(--muted); font-weight: 500;
 }
-.tank-card:hover { background: var(--raised); }
-.tank-card:active { transform: scale(0.98); }
-.tank-card b { display: block; font-weight: 500; white-space: nowrap; }
-.tank-card span { display: block; color: var(--faint); font-size: 12px; white-space: nowrap; }
+.tank-tile.add .glass::before, .tank-tile.add .glass::after { content: none; }
+.tank-tile.add:hover .glass { background: var(--raised); color: var(--text); }
+.close-talk { display: none; } /* shown by talk mode */
 
 /* The assistant core: the one element allowed to glow. */
-.core { position: relative; flex: none; width: 84px; height: 84px; margin: 0 26px; /* room for the outer tilted rings */
+.core { position: absolute; left: 50%; top: 42%; width: 84px; height: 84px; margin: -42px 0 0 -42px;
   border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer; }
 .core:focus-visible { outline-offset: 22px; }
-.say.extra { animation-delay: 0ms; }
 .core i { position: absolute; inset: 0; border-radius: 50%; }
 .core .halo {
   background: radial-gradient(circle, rgb(var(--core-rgb) / 0.26) 0%, rgb(var(--core-rgb) / 0) 70%); /* taste-skill-ignore: the one approved glow, screens.md */
@@ -104,29 +118,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud .l-dot { stroke: none; }
 @keyframes breathe { 0%, 100% { opacity: 0.55; transform: scale(1.45); } 50% { opacity: 1; transform: scale(1.7); } }
 
-.pointer {
-  position: absolute; top: 50%; height: 1px; background: var(--core);
-  transform: scaleX(0); opacity: 0; pointer-events: none;
-  transition: transform 600ms var(--ease-out), opacity 200ms ease;
-}
-.pointer.on { transform: scaleX(1); opacity: 1; }
-
-.talk { max-width: 520px; margin: 28px auto 0; display: grid; gap: 10px; }
-.say {
-  background: var(--surface); border-radius: 20px 20px 20px 6px; padding: 12px 16px;
-  font-size: 15px; line-height: 22px;
-  opacity: 0; transform: translateY(12px);
-  animation: rise 450ms var(--ease-out) forwards; animation-delay: calc(300ms + var(--i) * 700ms);
-}
-.say .who { display: block; color: var(--faint); font-size: 12px; line-height: 16px; margin-bottom: 2px; }
-.talk.all .say { animation: none; opacity: 1; transform: none; }
-@keyframes rise { to { opacity: 1; transform: none; } }
-.home-actions { display: flex; justify-content: center; margin-top: 24px; }
-
 /* Reduced motion: show everything at once, nothing travels. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .say { opacity: 1; transform: none; }
 }
 
 /* Tank detail */
@@ -160,7 +154,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .row span { display: block; color: var(--muted); font-size: 12px; }
 .row-actions { display: flex; gap: 16px; }
 .empty { color: var(--muted); margin-bottom: 4px; }
-.add { margin-top: 16px; }
+.pill.add { margin-top: 16px; }
 
 /* Dialogs */
 dialog { margin: auto; /* the global margin reset un-centres modal dialogs */ border: 0; padding: 0; background: var(--surface); color: var(--text); border-radius: var(--radius-card);
