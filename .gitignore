@@ -9,3 +9,6 @@ scripts/bin/harness.exe
 node_modules/
 # taste-skill screenshots
 .taste-skill/inspect*/
+
+# playwright-cli snapshots
+.playwright-cli/

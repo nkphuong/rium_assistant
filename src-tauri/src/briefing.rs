@@ -54,14 +54,12 @@ fn say(text: String, tank_id: Option<i64>) -> Bubble {
 pub fn briefing(tanks: &[TankOverview]) -> Vec<Bubble> {
     let lacking: Vec<_> = tanks.iter().filter(|t| !t.missing.is_empty()).collect();
     match (tanks, lacking.is_empty()) {
-        ([], _) => vec![say("Chào bạn, mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.".into(), None)],
+        ([], _) => vec![say("Mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.".into(), None)],
         ([one], true) => vec![say(format!("Bể {} đã có hồ sơ đầy đủ.", one.tank.name), None)],
         (all, true) => vec![say(format!("Cả {} bể đều đã có hồ sơ đầy đủ.", all.len()), None)],
-        (_, false) => std::iter::once(say("Chào bạn. Mình xem qua hồ sơ các bể rồi.".into(), None))
-            .chain(lacking.iter().map(|t| say(
-                format!("{} chưa có {}. Bạn thêm giúp mình nhé.", t.tank.name, labels(&t.missing, " và ")),
-                t.tank.id)))
-            .collect(),
+        (_, false) => lacking.iter().map(|t| say(
+            format!("{} chưa có {}. Bạn thêm giúp mình nhé.", t.tank.name, labels(&t.missing, " và ")),
+            t.tank.id)).collect(),
     }
 }
 
@@ -92,16 +90,15 @@ mod tests {
 
     #[test]
     fn briefing_copy() {
-        assert_eq!(briefing(&[])[0].text, "Chào bạn, mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.");
+        assert_eq!(briefing(&[])[0].text, "Mình là Bọt. Thêm bể đầu tiên để mình làm quen nhé.");
         let a = ov(1, "Hồ cá 1", vec![]);
         let b = ov(2, "Terra", vec![Missing::Plant]);
         let out = briefing(&[a.clone(), b]);
-        assert_eq!(out.len(), 2);
-        assert_eq!(out[0].text, "Chào bạn. Mình xem qua hồ sơ các bể rồi.");
-        assert_eq!(out[1].text, "Terra chưa có cây. Bạn thêm giúp mình nhé.");
-        assert_eq!(out[1].tank_id, Some(2));
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].text, "Terra chưa có cây. Bạn thêm giúp mình nhé.");
+        assert_eq!(out[0].tank_id, Some(2));
         let two = briefing(&[ov(5, "X", vec![Missing::Device, Missing::Animal])]);
-        assert_eq!(two[1].text, "X chưa có thiết bị và sinh vật. Bạn thêm giúp mình nhé.");
+        assert_eq!(two[0].text, "X chưa có thiết bị và sinh vật. Bạn thêm giúp mình nhé.");
         assert_eq!(briefing(&[a.clone(), ov(3, "Hồ cá 2", vec![])])[0].text, "Cả 2 bể đều đã có hồ sơ đầy đủ.");
         assert_eq!(briefing(&[a])[0].text, "Bể Hồ cá 1 đã có hồ sơ đầy đủ.");
     }

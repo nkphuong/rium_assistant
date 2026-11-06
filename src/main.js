@@ -1,4 +1,5 @@
 import { call } from "./api.js";
+import { greeting, dayKey, shouldAutoOpen, readGreeted, markGreeted } from "./talk.js";
 
 const view = document.getElementById("view");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -16,53 +17,190 @@ function stamp(count) {
 
 /* ---------- Home ---------- */
 
-const tankCard = (o) =>
-  `<button class="tank-card" data-tank="${o.tank.id}"><b>${esc(o.tank.name)}</b><span>${esc(o.status)}</span></button>`;
+// A tank-shaped tile: glass with water line, substrate and a few decorative stems, then name and status line.
+function tankTile(o) {
+  const t = o.tank;
+  const stems = Array.from({ length: 3 + (t.id % 3) }, (_, k) =>
+    `<i style="left:${18 + k * 44 + ((t.id * 13) % 17)}px;height:${18 + ((k * 7 + t.id * 5) % 22)}px"></i>`).join("");
+  const line = [KIND[t.kind], sizeLine(t)].filter(Boolean).join(" · ");
+  return `<button class="tank-tile" type="button" data-tank="${t.id}"><span class="glass" aria-hidden="true">${stems}</span>
+    <span class="meta"><b>${esc(t.name)}</b><span><i class="dot ${o.missing.length ? "warn" : "ok"}" title="${esc(o.status)}"></i>${esc(line)}</span></span></button>`;
+}
 
 async function home() {
   const [tanks, bubbles] = await Promise.all([call("list_tanks"), call("get_briefing")]);
   stamp(tanks.length);
-  const half = Math.ceil(tanks.length / 2);
   view.innerHTML = `
-    <section class="home">
+    <section class="home2">
       <h1 class="sr-only">Các bể của bạn</h1>
-      <div class="strip">
-        ${tanks.slice(0, half).map(tankCard).join("")}
-        <div class="core" aria-hidden="true"><i class="halo"></i><i class="ring"></i><i class="ring2"></i><i class="dot"></i></div>
-        ${tanks.slice(half).map(tankCard).join("")}
-        <div class="pointer" aria-hidden="true"></div>
-      </div>
-      <div class="talk" aria-live="polite">
-        ${bubbles.map((b, i) => `<p class="say" style="--i:${i}"><span class="who">Bọt</span>${esc(b.text)}</p>`).join("")}
-      </div>
-      <div class="home-actions"><button class="pill" data-add="tank">Thêm bể</button></div>
+      <button class="core" type="button" aria-label="Nói chuyện với Bọt" aria-expanded="false"><i class="halo" aria-hidden="true"></i>${HUD}</button>
+      <p class="hint">Bấm để nghe Bọt</p>
+      <div class="tanks">${tanks.map(tankTile).join("")}<button class="tank-tile add" type="button" data-add="tank"><span class="glass">+ Thêm bể</span></button></div>
+      <section class="talk-space" aria-live="polite"></section>
+      <button class="close-talk pill" type="button">Về các bể</button>
     </section>`;
-  point(bubbles);
+  const box = view.querySelector(".home2"), core = box.querySelector(".core");
+  hud(core);
+  core.onclick = () => (box.classList.contains("talking") ? closeTalk(box) : openTalk(box, bubbles));
+  box.querySelector(".close-talk").onclick = () => closeTalk(box);
+  const today = dayKey(new Date());
+  if (shouldAutoOpen(readGreeted(), today)) {
+    markGreeted(today);
+    openTalk(box, bubbles);
+  }
 }
 
-// When a bubble names a tank, draw a line from the core to that tank as the bubble appears.
-function point(bubbles) {
-  const strip = view.querySelector(".strip");
-  const line = strip.querySelector(".pointer");
-  const core = strip.querySelector(".core").getBoundingClientRect();
-  let first = true;
-  bubbles.forEach((b, i) => {
-    if (b.tank_id == null) return;
-    const show = () => {
-      const card = strip.querySelector(`[data-tank="${b.tank_id}"]`);
-      if (!card) return;
-      const r = card.getBoundingClientRect(), s = strip.getBoundingClientRect();
-      const left = r.right < core.left;
-      const from = left ? r.right : core.right, to = left ? core.left : r.left;
-      line.classList.remove("on");
-      Object.assign(line.style, { left: `${from - s.left + strip.scrollLeft}px`, width: `${to - from}px`, transformOrigin: left ? "right" : "left" });
-      requestAnimationFrame(() => line.classList.add("on"));
-    };
-    if (!reduced) setTimeout(show, 300 + i * 700 + 450);
-    else if (first) show(); // no travel: just mark the first tank named
-    first = false;
+/* ---------- Talk mode: tiles slide into a left column, the talk space opens out of the still core ---------- */
+
+let talkRun = 0; // every open/close starts a new run; pending steps of older runs stop
+
+// FLIP: animate els from where they are now to where change() puts them.
+function flip(els, change) {
+  if (reduced) return change();
+  const first = els.map((el) => el.getBoundingClientRect()); // includes any flight in progress
+  for (const el of els) { el.style.transition = "none"; el.style.transform = ""; } // the tile's own transition must not ease the jump
+  change();
+  els.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    el.style.transform = `translate(${first[i].left - r.left}px, ${first[i].top - r.top}px)`;
   });
-  view.querySelector(".talk").addEventListener("click", (e) => e.currentTarget.classList.add("all"), { once: true });
+  els[0]?.getBoundingClientRect(); // commit the inverted start before animating back to 0
+  for (const el of els) {
+    el.style.transition = "transform 800ms var(--ease-in-out)";
+    el.style.transform = "";
+    el.ontransitionend = (e) => e.target === el && (el.style.transition = ""); // hand :active back its own timing
+  }
+}
+
+function shift(home, talking) {
+  const tanks = home.querySelector(".tanks"), run = talkRun;
+  flip([...tanks.children], () => {
+    home.classList.toggle("talking", talking);
+    tanks.classList.toggle("flying", !reduced); // the scrolling row/column would clip tiles in flight
+  });
+  setTimeout(() => run === talkRun && tanks.classList.remove("flying"), 800);
+}
+
+async function openTalk(home, bubbles) {
+  const run = ++talkRun, core = home.querySelector(".core"), hello = greeting(new Date().getHours());
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms)).then(() => run === talkRun && home.isConnected);
+  shift(home, true);
+  core.setAttribute("aria-expanded", "true");
+  home.querySelector(".talk-space").innerHTML = `<i class="tether" aria-hidden="true"></i>
+    <div class="hud-frame"><i></i><i></i><i></i><i></i><div class="hud-body">
+      <p class="greet">${hello.split(" ").map((w) => `<span>${esc(w)}</span>`).join(" ")}</p>
+      ${bubbles.map((b) => `<p class="line">${esc(b.text)}</p>`).join("")}</div></div>`;
+  const words = home.querySelectorAll(".greet span"), lines = home.querySelectorAll(".talk-space .line");
+  if (reduced) return [...words, ...lines].forEach((el) => el.classList.add("on"));
+  if (!(await pause(700))) return; // words start only once the space has opened
+  speak(core, hello.length * 60);
+  for (const w of words) {
+    w.classList.add("on");
+    if (!(await pause(60 * (w.textContent.length + 1)))) return;
+  }
+  for (const [i, b] of bubbles.entries()) {
+    if (!(await pause(250))) return;
+    lines[i].classList.add("on");
+    const tile = b.tank_id == null ? null : home.querySelector(`.tank-tile[data-tank="${b.tank_id}"]`);
+    tile?.classList.add("lit");
+    speak(core, b.text.length * 60);
+    if (!(await pause(b.text.length * 60))) return;
+    tile?.classList.remove("lit");
+  }
+}
+
+function closeTalk(home) {
+  talkRun++;
+  const core = home.querySelector(".core");
+  core.setAttribute("aria-expanded", "false");
+  speak(core, 0); // stop talking now
+  home.querySelectorAll(".lit").forEach((t) => t.classList.remove("lit"));
+  shift(home, false);
+  core.focus();
+}
+
+addEventListener("keydown", (e) => {
+  const home = view.querySelector(".home2.talking");
+  if (e.key === "Escape" && home && !document.querySelector("dialog[open]")) closeTalk(home);
+});
+
+// Irregular dash patterns so no layer reads as a perfect ring.
+const plane = (cls, body) => `<svg class="${cls}" viewBox="-66 -66 132 132">${body}</svg>`;
+// Each ring plane: resting tilt x, y (degrees), spin speed (degrees per second), drawing.
+const RINGS = [
+  [0, 0, -5, `<circle r="42" stroke-width="4" opacity=".4" stroke-dasharray="0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 30"/>`],
+  [40, -35, 6, `<circle r="61" stroke-width="1.5" opacity=".7" stroke-dasharray="150 8 200 25"/>`],
+  [-65, 15, 11, `<circle r="64" stroke-width="2.5" opacity=".65" stroke-dasharray="3 3 3 3 3 3 60 12 30 18 3 3 3 3 90 40"/>`],
+  [60, 0, -9, `<circle r="56" stroke-width="5" opacity=".6" stroke-dasharray="1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 24 1.2 2.6 1.2 2.6 1.2 2.6 1.2 40 1.2 2.6 1.2 60"/>`],
+  [-20, -60, -18, `<circle r="52" stroke-width="5" opacity=".85" stroke-dasharray="10 70 4 40 18 95 6 84"/>`],
+  [18, 62, 14, `<circle r="48" stroke-width="3" opacity=".9" stroke-dasharray="34 6 6 6 52 14 3 9 20 40 8 6"/>`],
+  [35, -70, -33, `<circle r="44" stroke-width="1.5" opacity=".75" stroke-dasharray="70 8 2 8 2 8 40 138"/>`],
+  [75, 40, -26, `<circle r="36" stroke-width="3" stroke-linecap="round" opacity=".8" stroke-dasharray="0 7"/>`],
+  [-52, 28, 40, `<circle r="30" stroke-width="2.5" opacity="1" stroke-dasharray="36 10 10 132.5"/>`],
+  [10, -45, -60, `<circle r="24" stroke-width="2" opacity=".85" stroke-dasharray="20 8 6 116.8"/>`],
+  [60, 60, 55, `<circle cy="-44" r="3" fill="currentColor" stroke="none"/>`], // a satellite
+];
+const HUD = `<div class="hud">
+  ${RINGS.map((r) => plane("ring", r[3])).join("")}
+  ${plane("l-face", `<defs><radialGradient id="sphere" cx="0.4" cy="0.36" r="0.7">
+      <stop offset="0" stop-color="#e08a3c"/><stop offset="0.5" stop-color="#c85a06"/><stop offset="1" stop-color="#6e2c00"/>
+    </radialGradient></defs><path class="l-voice"/><circle class="l-dot" r="11" fill="url(#sphere)"/>`)}
+</div>`;
+
+// Spins each ring in its own tilted plane at a drifting speed, lets the tilts sway, and bends the voice ring
+// by --amp, until the core leaves the page.
+function hud(core) {
+  const box = core?.querySelector(".hud");
+  if (!box) return;
+  const planes = box.querySelectorAll(".ring");
+  const layers = RINGS.map(([tx, ty, base], i) => ({ el: planes[i], tx, ty, base, a: i * 70, p: i * 2.1 }));
+  const voice = box.querySelector(".l-voice"), dot = box.querySelector(".l-dot");
+  let last = performance.now();
+  const draw = (t) => {
+    const s = t / 1000, dt = Math.min(t - last, 50) / 1000, amp = Number(core.style.getPropertyValue("--amp") || 0);
+    last = t;
+    for (const l of layers) {
+      const surge = 1 + 0.7 * Math.sin(s * 0.37 + l.p) * Math.sin(s * 0.91 + l.p * 1.7); // speeds drift in and out of step
+      l.a += l.base * (surge + amp * 2.5) * dt;
+      const x = l.tx + 9 * Math.sin(s * 0.23 + l.p), y = l.ty + 11 * Math.sin(s * 0.17 + l.p * 1.3); // the planes sway
+      l.el.style.transform = `rotateX(${x.toFixed(2)}deg) rotateY(${y.toFixed(2)}deg) rotateZ(${l.a.toFixed(2)}deg)`;
+    }
+    let d = "";
+    for (let i = 0; i < 72; i++) {
+      const th = (i / 72) * Math.PI * 2;
+      const n = 0.5 * Math.sin(3 * th + s * 1.3) + 0.3 * Math.sin(5 * th - s * 2.1 + 1) + 0.2 * Math.sin(9 * th + s * 3.7);
+      const r = 38 + n * (0.8 + amp * 6);
+      d += `${i ? "L" : "M"}${(r * Math.cos(th)).toFixed(2)} ${(r * Math.sin(th)).toFixed(2)}`;
+    }
+    voice.setAttribute("d", d + "Z");
+    dot.setAttribute("r", (11 * (1 + amp * 0.5)).toFixed(2));
+  };
+  if (reduced) return draw(0); // still picture, no turning
+  const frame = (t) => { if (core.isConnected) { draw(t); requestAnimationFrame(frame); } };
+  requestAnimationFrame(frame);
+}
+
+// Drives --amp (0..1) with a fake voice: a new syllable level every 70-130ms, sometimes a pause.
+// One voice loop per core: a new call only moves its end, so speak(core, 0) hushes it.
+function speak(core, ms) {
+  if (reduced || !core) return;
+  const running = core.voiceEnd != null;
+  core.voiceEnd = performance.now() + ms;
+  if (running) return;
+  core.classList.add("speaking");
+  let amp = 0, target = 0, next = 0;
+  const tick = (t) => {
+    const end = core.voiceEnd;
+    if (t > next) {
+      target = t > end || Math.random() < 0.15 ? 0 : 0.25 + Math.random() * 0.75;
+      next = t + 70 + Math.random() * 60;
+    }
+    amp += (target - amp) * 0.25;
+    core.style.setProperty("--amp", amp.toFixed(3));
+    if (t < end || amp > 0.01) requestAnimationFrame(tick);
+    else { core.classList.remove("speaking"); core.style.removeProperty("--amp"); core.voiceEnd = null; }
+  };
+  requestAnimationFrame(tick);
 }
 
 /* ---------- Forms ---------- */
@@ -73,7 +211,9 @@ const FORMS = {
   tank: { cmd: "save_tank", arg: "tank", title: ["Thêm bể", "Sửa bể"], fields: [
     ["name", "Tên bể", "text", "required"], ["kind", "Loại bể", KIND],
     ["length_cm", "Dài (cm)", "number", SIZE], ["width_cm", "Rộng (cm)", "number", SIZE], ["height_cm", "Cao (cm)", "number", SIZE],
-    ["volume_l", "Thể tích (lít)", "number", SIZE], ["setup_date", "Ngày setup", "date"], ["notes", "Ghi chú", "textarea"]] },
+    ["volume_l", "Thể tích (lít)", "number", SIZE], ["setup_date", "Ngày setup", "date"], ["notes", "Ghi chú", "textarea"]],
+    groups: [["Bể là gì", ["name", "kind"]], ["Kích thước", ["length_cm", "width_cm", "height_cm", "volume_l"], "cols3"],
+      ["Lịch sử", ["setup_date", "notes"]]] },
   device: { cmd: "save_device", arg: "device", title: ["Thêm thiết bị", "Sửa thiết bị"], fields: [
     ["name", "Tên thiết bị", "text", "required"], ["purpose", "Công dụng", PURPOSE], ["connection", "Kết nối", LINK],
     ["brand", "Hãng", "text"], ["model", "Model", "text"], ["purchase_date", "Ngày mua", "date"], ["notes", "Ghi chú", "textarea"]] },
@@ -85,12 +225,13 @@ const FORMS = {
 
 function field([key, label, type, extra = ""], value) {
   const id = `f-${key}`;
-  let input;
-  if (typeof type === "object")
-    input = `<select id="${id}" name="${key}">${Object.entries(type).map(([v, l]) => `<option value="${v}"${v === value ? " selected" : ""}>${l}</option>`).join("")}</select>`;
-  else if (type === "textarea") input = `<textarea id="${id}" name="${key}" rows="2">${esc(value)}</textarea>`;
-  else input = `<input id="${id}" name="${key}" type="${type}" value="${esc(value)}" ${extra} aria-describedby="form-error">`;
-  return `<label for="${id}">${label}</label>${input}`;
+  if (typeof type === "object") // few fixed choices: a segmented radio group instead of a dropdown
+    return `<fieldset class="f seg"><legend>${label}</legend><div class="opts">${Object.entries(type).map(([v, l]) =>
+      `<label><input type="radio" name="${key}" value="${v}"${v === value ? " checked" : ""}><span>${l}</span></label>`).join("")}</div></fieldset>`;
+  const input = type === "textarea"
+    ? `<textarea id="${id}" name="${key}" rows="3" placeholder="Không bắt buộc">${esc(value)}</textarea>`
+    : `<input id="${id}" name="${key}" type="${type}" value="${esc(value)}" ${extra} aria-describedby="form-error">`;
+  return `<div class="f"><label for="${id}">${label}</label>${input}</div>`;
 }
 
 /** One form value for the core. Throws a Vietnamese message for numbers the core cannot even parse. */
@@ -111,13 +252,25 @@ function readField(form, [key, label, type, extra = ""]) {
 /** Opens the add/edit dialog; resolves to the saved record, or null if cancelled. */
 function openForm(type, record) {
   const spec = FORMS[type], dlg = document.getElementById("form");
-  dlg.innerHTML = `<form class="sheet" novalidate>
+  const byKey = Object.fromEntries(spec.fields.map((f) => [f[0], f]));
+  const groups = (spec.groups ?? [[null, Object.keys(byKey)]]).map(([title, keys, cls = ""]) =>
+    `<div class="grp ${cls}">${title ? `<h3>${title}</h3>` : ""}${keys.map((k) => field(byKey[k], record[k])).join("")}</div>`);
+  dlg.innerHTML = `<form class="drawer" novalidate>
       <h2 id="form-title">${spec.title[record.id == null ? 0 : 1]}</h2>
-      <div class="fields">${spec.fields.map((f) => field(f, record[f[0]])).join("")}</div>
+      <div class="fields">${groups.join("")}</div>
       <p id="form-error" class="error" role="alert"></p>
       <div class="actions"><button type="button" class="pill" data-cancel>Hủy</button><button class="pill primary">Lưu</button></div>
     </form>`;
   const form = dlg.querySelector("form"), save = form.querySelector(".primary");
+  const vol = form.elements.volume_l;
+  if (vol) { // show the estimate the detail page will use while the volume is left empty
+    const hint = () => {
+      const dims = ["length_cm", "width_cm", "height_cm"].map((k) => Number(form.elements[k].value));
+      vol.placeholder = dims.every((n) => n > 0) ? `≈ ${litres(dims)} lít ước tính — để trống nếu đúng` : "";
+    };
+    form.addEventListener("input", hint);
+    hint();
+  }
   return new Promise((resolve) => {
     dlg.onclose = () => resolve(null);
     form.querySelector("[data-cancel]").onclick = () => dlg.close();
@@ -153,12 +306,14 @@ function confirmDelete(text) {
 const TABS = { overview: "Tổng quan", devices: "Thiết bị", animals: "Sinh vật", plants: "Cây" };
 const daysSince = (d) => Math.floor((Date.now() - new Date(d + "T00:00:00")) / 86400000);
 
+const litres = ([l, w, h]) => Math.round((l * w * h) / 1000); // glass volume, no allowance for substrate
+
 function sizeLine(t) {
   const dims = [t.length_cm, t.width_cm, t.height_cm];
   const full = dims.every((v) => v != null);
   const parts = full ? [`${dims.join(" × ")} cm`] : [];
   if (t.volume_l != null) parts.push(`${t.volume_l} L`);
-  else if (full) parts.push(`≈ ${Math.round((dims[0] * dims[1] * dims[2]) / 1000)} L (ước tính)`);
+  else if (full) parts.push(`≈ ${litres(dims)} L (ước tính)`);
   return parts.join(" · ");
 }
 
@@ -226,7 +381,7 @@ async function route() {
     if (page === "tank" && Number.isInteger(Number(id))) await tankPage(Number(id), tab);
     else { current = null; await home(); }
   } catch (e) {
-    view.innerHTML = `<section class="home"><p class="say" style="opacity:1;transform:none">${esc(e)}</p><a class="link-btn" href="#/">← Các bể</a></section>`;
+    view.innerHTML = `<section class="detail"><p class="error">${esc(e)}</p><a class="link-btn" href="#/">← Các bể</a></section>`;
   }
 }
 

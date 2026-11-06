@@ -7,18 +7,25 @@
 
 
 :root {
-  color-scheme: dark;
-  --ground: #0c0d0f;
-  --surface: #15171a;
-  --raised: #23262b;
-  --border: #1c1e22;
-  --control: #444444;
-  --text: #ffffff;
-  --muted: #b4b4b4;
-  --faint: #949494;
-  --accent: #4cb3f0;
-  --warning: #e5a93b;
-  --negative: #e5566f;
+  /* "Nước ngày": light palette; accent is the logo blue deepened for white ground. */
+  color-scheme: light;
+  --ground: #f3f5f6;
+  --surface: #ffffff;
+  --raised: #e6ebef;
+  --border: #e3e8ec;
+  --control: #cfd6dc;
+  --text: #12171c;
+  --muted: #4e5a65;
+  --faint: #646e78;
+  --accent: #1d7fc4;
+  --accent-rgb: 29 127 196;
+  --core: #c85a06; /* the assistant's own colour: core, the mini core */
+  --core-rgb: 200 90 6;
+  --warning: #a86a00;
+  --negative: #c8344f;
+  --ok: #3a9a5b;
+  --sand: #d9c7a6;
+  --plant: #4f9a63;
   --radius-card: 20px;
   --gap: 14px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -55,68 +62,105 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .pill:hover { background: var(--raised); }
 .pill:active { transform: scale(0.97); }
-.pill.primary { background: var(--text); color: #000; border-color: var(--text); }
-.pill.primary:hover { background: #e6e6e6; }
+.pill.primary { background: var(--text); color: var(--surface); border-color: var(--text); }
+.pill.primary:hover { background: #2b333b; }
 .pill:disabled { opacity: 0.5; cursor: progress; }
 .link-btn { background: none; border: 0; padding: 0; color: var(--muted); }
 .link-btn:hover { color: var(--text); }
 
-/* Home */
-.home {
-  max-width: 1100px; margin: 0 auto; padding: 40px 29px 56px;
-  min-height: calc(100vh - 52px); display: flex; flex-direction: column; justify-content: center;
+/* Home: the core stays put at 42% height in every mode; tanks sit in a row beneath it. */
+.home2 { position: relative; height: calc(100vh - 52px); overflow: hidden; }
+.hint { position: absolute; left: 0; right: 0; top: calc(42% + 70px); text-align: center; color: var(--faint); font-size: 12px; transition: opacity 300ms ease; }
+.tanks {
+  position: absolute; left: 0; right: 0; top: calc(42% + 120px);
+  display: flex; align-items: flex-start; justify-content: safe center; gap: 28px; overflow-x: auto; padding: 4px 24px 12px;
 }
-.strip {
-  position: relative; display: flex; align-items: center; justify-content: safe center;
-  gap: var(--gap); min-height: 132px; overflow-x: auto; overflow-y: hidden;
-  padding: 32px 4px; /* room for the breathing halo (1.7 × 84px) */
+.tank-tile { flex: none; width: 220px; border: 0; padding: 0; background: none; text-align: left; transition: transform 120ms var(--ease-out); }
+.tank-tile:active { transform: scale(0.98); }
+.tank-tile .glass {
+  display: block; position: relative; height: 92px; overflow: hidden; border-radius: 6px 6px 10px 10px;
+  background: rgb(var(--accent-rgb) / 0.1); border: 2px solid rgb(var(--accent-rgb) / 0.35);
+  transition: background-color 200ms ease, border-color 200ms ease;
 }
-.tank-card {
-  flex: none; min-width: 132px; padding: 12px 16px; border-radius: var(--radius-card);
-  background: var(--surface); text-align: left; border: 0;
-  transition: background-color 200ms ease, transform 120ms var(--ease-out);
+.tank-tile:hover .glass { background: rgb(var(--accent-rgb) / 0.16); }
+.tank-tile .glass::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 2px; background: rgb(var(--accent-rgb) / 0.45); } /* water line */
+.tank-tile .glass::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: var(--sand); }
+.tank-tile .glass i { position: absolute; bottom: 16px; width: 6px; border-radius: 3px 3px 0 0; background: var(--plant); }
+.tank-tile .meta { display: block; padding: 10px 2px 0; }
+.tank-tile .meta b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tank-tile .meta span { color: var(--muted); font-size: 13px; }
+.tank-tile .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warning); }
+.tank-tile.add .glass {
+  display: grid; place-items: center; background: none; border: 2px dashed var(--control);
+  color: var(--muted); font-weight: 500;
 }
-.tank-card:hover { background: var(--raised); }
-.tank-card:active { transform: scale(0.98); }
-.tank-card b { display: block; font-weight: 500; white-space: nowrap; }
-.tank-card span { display: block; color: var(--faint); font-size: 12px; white-space: nowrap; }
+.tank-tile.add .glass::before, .tank-tile.add .glass::after { content: none; }
+.tank-tile.add:hover .glass { background: var(--raised); color: var(--text); }
 
 /* The assistant core: the one element allowed to glow. */
-.core { position: relative; flex: none; width: 84px; height: 84px; margin: 0 10px; }
+.core { position: absolute; left: 50%; top: 42%; width: 84px; height: 84px; margin: -42px 0 0 -42px;
+  border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer; }
+.core:focus-visible { outline-offset: 22px; }
 .core i { position: absolute; inset: 0; border-radius: 50%; }
 .core .halo {
-  background: radial-gradient(circle, rgb(76 179 240 / 0.34) 0%, rgb(76 179 240 / 0) 70%); /* taste-skill-ignore: the one approved glow, screens.md */
+  background: radial-gradient(circle, rgb(var(--core-rgb) / 0.26) 0%, rgb(var(--core-rgb) / 0) 70%); /* taste-skill-ignore: the one approved glow, screens.md */
   animation: breathe 4.2s var(--ease-in-out) infinite;
 }
-.core .ring { border: 1.5px solid var(--accent); }
-.core .ring2 { inset: 10px; border: 1px solid rgb(76 179 240 / 0.4); border-top-color: var(--accent); animation: spin 6s linear infinite; }
-.core .dot { inset: 31px; background: var(--accent); }
+/* 3D HUD: each layer is its own SVG plane, tilted and turned by hud() in main.js; the browser sorts depth,
+   so ring halves pass behind the sphere. 1 SVG unit = 1px, centred on the core. */
+.core { perspective: 360px; }
+.core .hud { position: absolute; inset: 0; transform-style: preserve-3d; }
+.hud svg { position: absolute; left: -24px; top: -24px; width: 132px; height: 132px; overflow: visible; fill: none; stroke: var(--core); color: var(--core); }
+.hud .l-voice { stroke-width: 1.5; stroke-linejoin: round; }
+.hud .l-dot { stroke: none; }
 @keyframes breathe { 0%, 100% { opacity: 0.55; transform: scale(1.45); } 50% { opacity: 1; transform: scale(1.7); } }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-.pointer {
-  position: absolute; top: 50%; height: 1px; background: var(--accent);
-  transform: scaleX(0); opacity: 0; pointer-events: none;
-  transition: transform 600ms var(--ease-out), opacity 200ms ease;
+/* Talk mode (style B, "Bảng HUD"): tiles become a left column, the talk space opens out of the core. */
+.home2.talking .hint { opacity: 0; }
+.home2.talking .tanks {
+  left: 48px; right: auto; top: 0; bottom: 0; flex-direction: column; justify-content: safe center;
+  gap: 16px; overflow-x: hidden; overflow-y: auto; padding: 16px 4px;
 }
-.pointer.on { transform: scaleX(1); opacity: 1; }
-
-.talk { max-width: 520px; margin: 28px auto 0; display: grid; gap: 10px; }
-.say {
-  background: var(--surface); border-radius: 20px 20px 20px 6px; padding: 12px 16px;
-  font-size: 15px; line-height: 22px;
-  opacity: 0; transform: translateY(12px);
-  animation: rise 450ms var(--ease-out) forwards; animation-delay: calc(300ms + var(--i) * 700ms);
+.home2 .tanks.flying { overflow: visible; }
+.tank-tile.lit .glass { border-color: var(--core); }
+.talk-space {
+  position: absolute; top: 0; bottom: 0; left: calc(50% + 96px); right: 48px;
+  display: grid; grid-template-rows: 42fr auto 58fr; /* the 42% line, where the tether runs, always crosses the frame */
+  clip-path: circle(0 at -96px 42%); visibility: hidden; pointer-events: none;
+  transition: clip-path 900ms var(--ease-in-out), visibility 0s 900ms;
 }
-.say .who { display: block; color: var(--faint); font-size: 12px; line-height: 16px; margin-bottom: 2px; }
-.talk.all .say { animation: none; opacity: 1; transform: none; }
-@keyframes rise { to { opacity: 1; transform: none; } }
-.home-actions { display: flex; justify-content: center; margin-top: 24px; }
+.home2.talking .talk-space { clip-path: circle(160% at -96px 42%); visibility: visible; pointer-events: auto; transition-delay: 0s; }
+.tether {
+  position: absolute; left: -54px; top: 42%; width: 54px; height: 2px; margin-top: -1px;
+  background: var(--core); transform-origin: left; animation: tether 500ms 500ms var(--ease-out) both;
+}
+@keyframes tether { from { transform: scaleX(0); } }
+.hud-frame { grid-row: 2; position: relative; max-width: 560px; padding: 28px 32px; }
+.hud-body { max-height: calc(100vh - 340px); overflow-y: auto; } /* corners stay on the frame; only the text scrolls */
+.hud-frame > i { position: absolute; width: 22px; height: 22px; border: 0 solid var(--core); }
+.hud-frame > i:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
+.hud-frame > i:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }
+.hud-frame > i:nth-child(3) { left: 0; bottom: 0; border-width: 0 0 3px 3px; }
+.hud-frame > i:nth-child(4) { right: 0; bottom: 0; border-width: 0 3px 3px 0; }
+.greet { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
+.greet span { opacity: 0; transition: opacity 160ms ease; }
+.talk-space .line {
+  display: flex; gap: 12px; padding: 10px 0; font-size: 16px; line-height: 24px;
+  opacity: 0; transform: translateX(-12px); transition: opacity 400ms ease, transform 500ms var(--ease-out);
+}
+.talk-space .line::before { content: "›"; color: var(--core); font-weight: 600; min-width: 18px; }
+.greet span.on, .talk-space .line.on { opacity: 1; transform: none; }
+.close-talk {
+  position: absolute; right: 48px; top: 24px; background: var(--surface);
+  opacity: 0; visibility: hidden; transition: opacity 300ms ease, visibility 0s 300ms;
+}
+.home2.talking .close-talk { opacity: 1; visibility: visible; transition: opacity 300ms ease 600ms, visibility 0s 600ms; }
 
 /* Reduced motion: show everything at once, nothing travels. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .say { opacity: 1; transform: none; }
 }
 
 /* Tank detail */
@@ -128,10 +172,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dtitle p { color: var(--muted); }
 .dactions { display: flex; gap: 8px; }
 .mini { position: relative; flex: none; width: 34px; height: 34px; }
-.mini i { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--accent); }
-.mini i + i { inset: 12px; border: 0; background: var(--accent); }
+.mini i { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--core); }
+.mini i + i { inset: 12px; border: 0; background: var(--core); }
 .tabs { display: flex; gap: 24px; margin: 22px 0 18px; border-bottom: 1px solid var(--border); }
-.tabs a, .tabs .soon { padding-bottom: 10px; color: #bbbbbb; transition: color 200ms ease; }
+.tabs a, .tabs .soon { padding-bottom: 10px; color: var(--muted); transition: color 200ms ease; }
 .tabs a:hover, .tabs a.on { color: var(--text); }
 .tabs a.on { font-weight: 500; }
 .tabs .soon { color: var(--faint); margin-left: auto; }
@@ -150,21 +194,47 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .row span { display: block; color: var(--muted); font-size: 12px; }
 .row-actions { display: flex; gap: 16px; }
 .empty { color: var(--muted); margin-bottom: 4px; }
-.add { margin-top: 16px; }
+.pill.add { margin-top: 16px; }
 
 /* Dialogs */
-dialog { border: 0; padding: 0; background: var(--surface); color: var(--text); border-radius: var(--radius-card);
-  width: min(480px, calc(100vw - 32px)); box-shadow: 0 16px 48px rgb(0 0 0 / 0.5); }
-dialog::backdrop { background: rgb(0 0 0 / 0.6); }
+dialog { margin: auto; /* the global margin reset un-centres modal dialogs */ border: 0; padding: 0; background: var(--surface); color: var(--text); border-radius: var(--radius-card);
+  width: min(480px, calc(100vw - 32px)); box-shadow: 0 16px 48px rgb(18 23 28 / 0.18); }
+dialog::backdrop { background: rgb(18 23 28 / 0.25); }
 .sheet { padding: 22px; }
-.sheet h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-.fields { display: grid; grid-template-columns: 1fr; gap: 6px; }
-.fields label { color: var(--muted); font-size: 12px; margin-top: 6px; }
-.fields input, .fields select, .fields textarea {
-  font: inherit; color: var(--text); background: var(--ground); border: 1px solid var(--control);
-  border-radius: 10px; height: 36px; padding: 0 12px; color-scheme: dark;
+
+/* Add/edit form: a full-height drawer on the right. */
+dialog#form {
+  margin: 0 0 0 auto; width: min(460px, 100vw); height: 100%; max-height: 100%; border-radius: 0;
 }
-.fields textarea { height: auto; padding: 8px 12px; resize: vertical; }
+dialog#form[open] { animation: drawer-in 280ms var(--ease-out); }
+@keyframes drawer-in { from { transform: translateX(40px); opacity: 0; } }
+.drawer { height: 100%; display: flex; flex-direction: column; padding: 28px 24px 24px; }
+.drawer h2 { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 20px; }
+.fields { flex: 1; overflow-y: auto; display: grid; align-content: start; gap: 14px; margin: 0 -4px; padding: 0 4px; scrollbar-width: thin; }
+.grp { background: var(--ground); border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
+.grp h3 { font-size: 14px; font-weight: 600; margin-bottom: -4px; }
+.grp.cols3 { grid-template-columns: repeat(3, 1fr); column-gap: 10px; }
+.grp.cols3 h3, .grp.cols3 .f:last-child { grid-column: 1 / -1; }
+.f { display: grid; gap: 8px; min-width: 0; }
+.f > label, .seg legend { color: var(--muted); font-size: 14px; font-weight: 500; }
+.f input, .f textarea {
+  font: inherit; font-size: 15px; color: var(--text); background: var(--surface); border: 1px solid var(--control);
+  border-radius: 10px; height: 40px; padding: 0 12px; width: 100%;
+}
+.f textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.f input::placeholder, .f textarea::placeholder { color: var(--faint); }
+.seg { border: 0; padding: 0; }
+.seg legend { padding: 0; margin-bottom: 8px; }
+.seg .opts { display: flex; flex-wrap: wrap; gap: 4px; background: var(--raised); border-radius: 12px; padding: 4px; }
+.seg label { flex: 1 0 auto; position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span {
+  display: grid; place-items: center; height: 34px; padding: 0 8px; border-radius: 9px; white-space: nowrap;
+  color: var(--muted); transition: background-color 200ms ease, color 200ms ease;
+}
+.seg label:hover span { color: var(--text); }
+.seg input:checked + span { background: var(--surface); color: var(--text); font-weight: 500; }
+.seg input:focus-visible + span { outline: 2px solid var(--text); outline-offset: 1px; }
 .error { color: var(--negative); min-height: 20px; margin-top: 10px; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .pill.danger { border-color: var(--negative); color: var(--negative); }
