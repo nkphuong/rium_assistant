@@ -12,6 +12,25 @@ Mới nhất ở trên. Mỗi phiên một mục:
 - Phiên sau: ...
 ```
 
+## 2026-11-06 (chiều) — Thiết kế, đặt tên, triển khai MVP 1
+
+- Làm được: review thiết kế bằng taste-skill (style true-black flat, bảng màu
+  "nước đêm", chỉ lõi phát sáng); tra prompt-motion.com; viết spec
+  `docs/product/` + plan `docs/plans/active/mvp-1-tank-profiles.md`; cài Rust +
+  MSVC Build Tools; triển khai 9 task trên nhánh `feat/mvp-1` (Tauri + SQLite,
+  10 test Rust, màn hình chính + chi tiết + form); build bản cài NSIS.
+- Quyết định: tên app tạm **Bọt** (BỌT = Bể Ổn Tốt), identifier giữ
+  `com.rium.assistant`; dùng `rg` thay grep; taste-skill là design skill duy nhất.
+- Học được: [engineering/tauri-e2e-and-build.md](engineering/tauri-e2e-and-build.md),
+  [engineering/motion-references.md](engineering/motion-references.md).
+- Trạng thái: chờ review cuối toàn nhánh và **người dùng nghiệm thu** (cài
+  `Bọt_0.1.0_x64-setup.exe`, nhập 4 bể thật). Plan còn ở `active/`.
+- Vướng mắc: heredoc/python trong bash làm hỏng `\r`, `\B` trong đường dẫn
+  Windows (lặp 3 lần) → khi nội dung có dấu `\`, sửa file bằng công cụ Edit/Write,
+  không dùng heredoc + python.
+- Phiên sau: nghiệm thu → merge `feat/mvp-1` → plan sang `completed/` → brainstorm
+  đợt 2 (Tuya).
+
 ## 2026-11-06 — Brainstorm ý tưởng & dựng nền dự án
 
 - Làm được: brainstorm (superpowers) về app desktop Rust làm bạn với các bể
