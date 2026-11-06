@@ -4,3 +4,8 @@ scripts/bin/harness.exe
 
 # Brainstorm mockups
 .superpowers/
+
+# Node
+node_modules/
+# taste-skill screenshots
+.taste-skill/inspect/
