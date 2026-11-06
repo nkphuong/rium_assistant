@@ -17,3 +17,4 @@ Cách dùng wiki: xem [README.md](README.md). Nhật ký phiên: [log.md](log.md
 ## Engineering
 
 - [engineering/motion-references.md](engineering/motion-references.md) — prompt motion đáng dùng (prompt-motion.com) và nguyên lý chuyển động cho UI HUD.
+- [engineering/tauri-e2e-and-build.md](engineering/tauri-e2e-and-build.md) — E2E Tauri bằng playwright-cli qua WebView2 CDP; cạm bẫy build Windows (WiX, NSIS, identifier).

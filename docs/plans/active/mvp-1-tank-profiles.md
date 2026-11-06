@@ -369,15 +369,15 @@ CREATE TABLE plants (
 
 ## Progress
 
-- [ ] Task 0 — Điều kiện tiên quyết và commit nền
-- [ ] Task 1 — Dựng app Tauri + DB có migrate
-- [ ] Task 2 — Bể: kiểu, validate, CRUD
-- [ ] Task 3 — Thiết bị, sinh vật, cây
-- [ ] Task 4 — Độ đầy đủ và lời trợ lý
-- [ ] Task 5 — Lệnh Tauri và vị trí DB
-- [ ] Task 6 — Khung UI, token, màn hình chính
-- [ ] Task 7 — Trang chi tiết bể và form
-- [ ] Task 8 — Bản phát hành và bàn giao
+- [x] Task 0 — Điều kiện tiên quyết và commit nền
+- [x] Task 1 — Dựng app Tauri + DB có migrate
+- [x] Task 2 — Bể: kiểu, validate, CRUD
+- [x] Task 3 — Thiết bị, sinh vật, cây
+- [x] Task 4 — Độ đầy đủ và lời trợ lý
+- [x] Task 5 — Lệnh Tauri và vị trí DB
+- [x] Task 6 — Khung UI, token, màn hình chính
+- [x] Task 7 — Trang chi tiết bể và form
+- [x] Task 8 — Bản phát hành và bàn giao
 
 ## Decisions
 
@@ -386,6 +386,8 @@ CREATE TABLE plants (
 - 2026-11-06: Font Inter đóng gói cục bộ vì app không cần mạng ở MVP 1.
 - 2026-11-06: Có `mock.js` để chạy UI ngoài Tauri cho taste-skill inspect và xem nhanh.
 - 2026-11-06: "Biến hình" và "số lăn" để đợt sau.
+- 2026-11-06: Chỉ build NSIS — WiX/MSI không nhận tên "Bọt" (code page 1252).
+- 2026-11-06: Kiểm chứng E2E bằng WebView2 remote debugging + playwright-cli (xem wiki engineering).
 
 ## Validation
 
@@ -395,4 +397,16 @@ CREATE TABLE plants (
 
 ## Result
 
-_(điền sau khi hoàn tất)_
+2026-11-06 — triển khai xong trên nhánh `feat/mvp-1`, **chờ người dùng nghiệm thu**.
+
+- `cargo test`: 10/10 pass (db, tanks, briefing).
+- E2E trên app thật (playwright-cli gắn qua cổng debug WebView2): thêm bể bằng
+  form (bấm đúp Lưu → 1 bản ghi), tên loài toàn khoảng trắng → "Tên loài không
+  được để trống", thêm sinh vật/thiết bị, sửa số lượng, xóa bể kèm xác nhận.
+- Bản phát hành: `Bọt_0.1.0_x64-setup.exe` (NSIS, 2,35 MB) cài vào
+  `%LOCALAPPDATA%\Bọtium.exe`; nhập 2 bể mẫu, tắt, mở lại → còn nguyên;
+  DB ở `%APPDATA%\com.rium.assistantium.db`, không có `rium.db` trong repo.
+- taste-skill: lint 0 FAIL; inspect --app 0 FAIL (ngoại lệ: quầng lõi, bóng của dialog).
+
+Giới hạn: chưa có "biến hình", "số lăn"; bản cài chưa ký số (Windows SmartScreen
+có thể cảnh báo). Plan chuyển sang `completed/` sau khi người dùng nhập 4 bể thật.
