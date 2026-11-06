@@ -1,4 +1,5 @@
 import { call } from "./api.js";
+import { greeting, dayKey, shouldAutoOpen, readGreeted, markGreeted } from "./talk.js";
 
 const view = document.getElementById("view");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -27,7 +28,7 @@ function tankTile(o) {
 }
 
 async function home() {
-  const tanks = await call("list_tanks");
+  const [tanks, bubbles] = await Promise.all([call("list_tanks"), call("get_briefing")]);
   stamp(tanks.length);
   view.innerHTML = `
     <section class="home2">
@@ -36,10 +37,90 @@ async function home() {
       <p class="hint">Bấm để nghe Bọt</p>
       <div class="tanks">${tanks.map(tankTile).join("")}<button class="tank-tile add" type="button" data-add="tank"><span class="glass">+ Thêm bể</span></button></div>
       <section class="talk-space" aria-live="polite"></section>
-      <button class="close-talk" type="button">Về các bể</button>
+      <button class="close-talk pill" type="button">Về các bể</button>
     </section>`;
-  hud(view.querySelector(".core"));
+  const box = view.querySelector(".home2"), core = box.querySelector(".core");
+  hud(core);
+  core.onclick = () => (box.classList.contains("talking") ? closeTalk(box) : openTalk(box, bubbles));
+  box.querySelector(".close-talk").onclick = () => closeTalk(box);
+  const today = dayKey(new Date());
+  if (shouldAutoOpen(readGreeted(), today)) {
+    markGreeted(today);
+    openTalk(box, bubbles);
+  }
 }
+
+/* ---------- Talk mode: tiles slide into a left column, the talk space opens out of the still core ---------- */
+
+let talkRun = 0; // every open/close starts a new run; pending steps of older runs stop
+
+// FLIP: animate els from where they are now to where change() puts them.
+function flip(els, change) {
+  if (reduced) return change();
+  const first = els.map((el) => el.getBoundingClientRect()); // includes any flight in progress
+  for (const el of els) { el.style.transition = "none"; el.style.transform = ""; } // the tile's own transition must not ease the jump
+  change();
+  els.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    el.style.transform = `translate(${first[i].left - r.left}px, ${first[i].top - r.top}px)`;
+  });
+  els[0]?.getBoundingClientRect(); // commit the inverted start before animating back to 0
+  for (const el of els) {
+    el.style.transition = "transform 800ms var(--ease-in-out)";
+    el.style.transform = "";
+    el.ontransitionend = (e) => e.target === el && (el.style.transition = ""); // hand :active back its own timing
+  }
+}
+
+function shift(home, talking) {
+  const tanks = home.querySelector(".tanks"), run = talkRun;
+  flip([...tanks.children], () => {
+    home.classList.toggle("talking", talking);
+    tanks.classList.toggle("flying", !reduced); // the scrolling row/column would clip tiles in flight
+  });
+  setTimeout(() => run === talkRun && tanks.classList.remove("flying"), 800);
+}
+
+async function openTalk(home, bubbles) {
+  const run = ++talkRun, core = home.querySelector(".core"), hello = greeting(new Date().getHours());
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms)).then(() => run === talkRun && home.isConnected);
+  shift(home, true);
+  home.querySelector(".talk-space").innerHTML = `<i class="tether" aria-hidden="true"></i>
+    <div class="hud-frame"><i></i><i></i><i></i><i></i>
+      <p class="greet">${hello.split(" ").map((w) => `<span>${esc(w)}</span>`).join(" ")}</p>
+      ${bubbles.map((b) => `<p class="line">${esc(b.text)}</p>`).join("")}</div>`;
+  const words = home.querySelectorAll(".greet span"), lines = home.querySelectorAll(".talk-space .line");
+  if (reduced) return [...words, ...lines].forEach((el) => el.classList.add("on"));
+  if (!(await pause(700))) return; // words start only once the space has opened
+  speak(core, hello.length * 60);
+  for (const w of words) {
+    w.classList.add("on");
+    if (!(await pause(60 * (w.textContent.length + 1)))) return;
+  }
+  for (const [i, b] of bubbles.entries()) {
+    if (!(await pause(250))) return;
+    lines[i].classList.add("on");
+    const tile = b.tank_id == null ? null : home.querySelector(`.tank-tile[data-tank="${b.tank_id}"]`);
+    tile?.classList.add("lit");
+    speak(core, b.text.length * 60);
+    if (!(await pause(b.text.length * 60))) return;
+    tile?.classList.remove("lit");
+  }
+}
+
+function closeTalk(home) {
+  talkRun++;
+  const core = home.querySelector(".core");
+  speak(core, 0); // stop talking now
+  home.querySelectorAll(".lit").forEach((t) => t.classList.remove("lit"));
+  shift(home, false);
+  core.focus();
+}
+
+addEventListener("keydown", (e) => {
+  const home = view.querySelector(".home2.talking");
+  if (e.key === "Escape" && home && !document.querySelector("dialog[open]")) closeTalk(home);
+});
 
 // Irregular dash patterns so no layer reads as a perfect ring.
 const plane = (cls, body) => `<svg class="${cls}" viewBox="-66 -66 132 132">${body}</svg>`;
@@ -98,12 +179,16 @@ function hud(core) {
 }
 
 // Drives --amp (0..1) with a fake voice: a new syllable level every 70-130ms, sometimes a pause.
+// One voice loop per core: a new call only moves its end, so speak(core, 0) hushes it.
 function speak(core, ms) {
   if (reduced || !core) return;
+  const running = core.voiceEnd != null;
+  core.voiceEnd = performance.now() + ms;
+  if (running) return;
   core.classList.add("speaking");
-  const end = performance.now() + ms;
   let amp = 0, target = 0, next = 0;
   const tick = (t) => {
+    const end = core.voiceEnd;
     if (t > next) {
       target = t > end || Math.random() < 0.15 ? 0 : 0.25 + Math.random() * 0.75;
       next = t + 70 + Math.random() * 60;
@@ -111,7 +196,7 @@ function speak(core, ms) {
     amp += (target - amp) * 0.25;
     core.style.setProperty("--amp", amp.toFixed(3));
     if (t < end || amp > 0.01) requestAnimationFrame(tick);
-    else { core.classList.remove("speaking"); core.style.removeProperty("--amp"); }
+    else { core.classList.remove("speaking"); core.style.removeProperty("--amp"); core.voiceEnd = null; }
   };
   requestAnimationFrame(tick);
 }
