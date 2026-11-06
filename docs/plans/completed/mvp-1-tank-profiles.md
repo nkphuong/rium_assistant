@@ -6,7 +6,7 @@ Date: 2026-11-06
 
 ## Status
 
-Active
+Completed
 
 ## Outcome
 
@@ -397,7 +397,7 @@ CREATE TABLE plants (
 
 ## Result
 
-2026-11-06 — triển khai xong trên nhánh `feat/mvp-1`, **chờ người dùng nghiệm thu**.
+2026-11-06 — triển khai xong trên nhánh `feat/mvp-1`, người dùng **đã nghiệm thu** (2026-11-06), merge vào `main`.
 
 - `cargo test`: 10/10 pass (db, tanks, briefing).
 - E2E trên app thật (playwright-cli gắn qua cổng debug WebView2): thêm bể bằng
@@ -409,4 +409,6 @@ CREATE TABLE plants (
 - taste-skill: lint 0 FAIL; inspect --app 0 FAIL (ngoại lệ: quầng lõi, bóng của dialog).
 
 Giới hạn: chưa có "biến hình", "số lăn"; bản cài chưa ký số (Windows SmartScreen
-có thể cảnh báo). Plan chuyển sang `completed/` sau khi người dùng nhập 4 bể thật.
+có thể cảnh báo). Review cuối (reviewer độc lập): 0 Critical, 3 Important đã sửa ở commit 75b7049.
+Minor hoãn: Esc khi đang lưu bỏ qua làm mới; ngày setup tương lai/không hợp lệ;
+CSP null; route() chồng nhau; cập nhật bản ghi con có thể đổi tank_id qua API.

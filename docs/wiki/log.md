@@ -23,13 +23,13 @@ Mới nhất ở trên. Mỗi phiên một mục:
   `com.rium.assistant`; dùng `rg` thay grep; taste-skill là design skill duy nhất.
 - Học được: [engineering/tauri-e2e-and-build.md](engineering/tauri-e2e-and-build.md),
   [engineering/motion-references.md](engineering/motion-references.md).
-- Trạng thái: chờ review cuối toàn nhánh và **người dùng nghiệm thu** (cài
-  `Bọt_0.1.0_x64-setup.exe`, nhập 4 bể thật). Plan còn ở `active/`.
+- Trạng thái: review cuối xong (3 lỗi Important đã sửa, 5 minor hoãn — xem plan),
+  người dùng **đã nghiệm thu**; `feat/mvp-1` merge vào `main`; plan ở `completed/`.
 - Vướng mắc: heredoc/python trong bash làm hỏng `\r`, `\B` trong đường dẫn
   Windows (lặp 3 lần) → khi nội dung có dấu `\`, sửa file bằng công cụ Edit/Write,
   không dùng heredoc + python.
-- Phiên sau: nghiệm thu → merge `feat/mvp-1` → plan sang `completed/` → brainstorm
-  đợt 2 (Tuya).
+- Phiên sau: brainstorm đợt 2 (Tuya: điều khiển ổ cắm, đọc log, cảm biến tràn).
+  Nợ minor của MVP 1 nằm trong mục Result của plan.
 
 ## 2026-11-06 — Brainstorm ý tưởng & dựng nền dự án
 

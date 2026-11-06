@@ -30,4 +30,8 @@ decision into `docs/decisions/`; keep task-local choices in the plan.
 
 ## Active Plans
 
-- [mvp-1-tank-profiles.md](active/mvp-1-tank-profiles.md) — MVP 1: khung app Tauri, hồ sơ bể, màn hình chính và chi tiết.
+No active execution plans are currently indexed.
+
+## Completed Plans
+
+- [mvp-1-tank-profiles.md](completed/mvp-1-tank-profiles.md) — MVP 1: khung app Tauri, hồ sơ bể, màn hình chính và chi tiết (2026-11-06).
