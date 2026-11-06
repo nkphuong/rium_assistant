@@ -28,7 +28,7 @@ async function home() {
       <h1 class="sr-only">Các bể của bạn</h1>
       <div class="strip">
         ${tanks.slice(0, half).map(tankCard).join("")}
-        <div class="core" aria-hidden="true"><i class="halo"></i><i class="ring"></i><i class="ring2"></i><i class="dot"></i></div>
+        <button class="core" type="button" aria-label="Nói chuyện với Bọt"><i class="halo" aria-hidden="true"></i>${HUD}</button>
         ${tanks.slice(half).map(tankCard).join("")}
         <div class="pointer" aria-hidden="true"></div>
       </div>
@@ -38,6 +38,113 @@ async function home() {
       <div class="home-actions"><button class="pill" data-add="tank">Thêm bể</button></div>
     </section>`;
   point(bubbles);
+  // the core "talks" from the first bubble on, about as long as reading the bubbles aloud (~65ms a character)
+  const chars = bubbles.reduce((n, b) => n + b.text.length, 0);
+  if (bubbles.length) setTimeout(() => speak(view.querySelector(".core"), Math.max(bubbles.length * 700 + 300, chars * 65)), 300);
+  hud(view.querySelector(".core"));
+  chat(view.querySelector(".core"), tanks, bubbles);
+}
+
+// Things Bọt can say when clicked: its real briefing first, then a few lines that claim no data.
+const SMALL_TALK = [
+  "Mình đây! Bọt vẫn đang trông chừng các bể cho bạn.",
+  "Bạn cần gì cứ gọi, mình nghe nè.",
+  "Có thiết bị mới thì thêm vào, mình theo dõi giúp cho.",
+  "Thay nước đều đặn là cách giữ bể ổn định nhất đó.",
+];
+const MAX_EXTRA = 3; // clicked lines kept on screen; older ones leave
+
+// Clicking the core makes Bọt say the next line in turn (never the same twice running).
+function chat(core, tanks, bubbles) {
+  const lines = [...bubbles.map((b) => b.text), tanks.length ? `Bạn đang có ${tanks.length} bể.` : "Bạn chưa có bể nào, thêm một bể nhé?", ...SMALL_TALK];
+  let next = bubbles.length % lines.length; // start after what was just said on arrival
+  core.addEventListener("click", () => {
+    if (core.classList.contains("speaking")) return; // let it finish the sentence
+    const text = lines[next];
+    next = (next + 1) % lines.length;
+    const talk = view.querySelector(".talk");
+    const p = document.createElement("p");
+    p.className = "say extra";
+    p.innerHTML = `<span class="who">Bọt</span>${esc(text)}`;
+    talk.append(p);
+    talk.querySelectorAll(".extra").forEach((el, i, all) => i < all.length - MAX_EXTRA && el.remove());
+    speak(core, text.length * 65);
+  });
+}
+
+// Irregular dash patterns so no layer reads as a perfect ring.
+const plane = (cls, body) => `<svg class="${cls}" viewBox="-66 -66 132 132">${body}</svg>`;
+// Each ring plane: resting tilt x, y (degrees), spin speed (degrees per second), drawing.
+const RINGS = [
+  [0, 0, -5, `<circle r="42" stroke-width="4" opacity=".4" stroke-dasharray="0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 30"/>`],
+  [40, -35, 6, `<circle r="61" stroke-width="1.5" opacity=".7" stroke-dasharray="150 8 200 25"/>`],
+  [-65, 15, 11, `<circle r="64" stroke-width="2.5" opacity=".65" stroke-dasharray="3 3 3 3 3 3 60 12 30 18 3 3 3 3 90 40"/>`],
+  [60, 0, -9, `<circle r="56" stroke-width="5" opacity=".6" stroke-dasharray="1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 24 1.2 2.6 1.2 2.6 1.2 2.6 1.2 40 1.2 2.6 1.2 60"/>`],
+  [-20, -60, -18, `<circle r="52" stroke-width="5" opacity=".85" stroke-dasharray="10 70 4 40 18 95 6 84"/>`],
+  [18, 62, 14, `<circle r="48" stroke-width="3" opacity=".9" stroke-dasharray="34 6 6 6 52 14 3 9 20 40 8 6"/>`],
+  [35, -70, -33, `<circle r="44" stroke-width="1.5" opacity=".75" stroke-dasharray="70 8 2 8 2 8 40 138"/>`],
+  [75, 40, -26, `<circle r="36" stroke-width="3" stroke-linecap="round" opacity=".8" stroke-dasharray="0 7"/>`],
+  [-52, 28, 40, `<circle r="30" stroke-width="2.5" opacity="1" stroke-dasharray="36 10 10 132.5"/>`],
+  [10, -45, -60, `<circle r="24" stroke-width="2" opacity=".85" stroke-dasharray="20 8 6 116.8"/>`],
+  [60, 60, 55, `<circle cy="-44" r="3" fill="currentColor" stroke="none"/>`], // a satellite
+];
+const HUD = `<div class="hud">
+  ${RINGS.map((r) => plane("ring", r[3])).join("")}
+  ${plane("l-face", `<defs><radialGradient id="sphere" cx="0.4" cy="0.36" r="0.7">
+      <stop offset="0" stop-color="#e08a3c"/><stop offset="0.5" stop-color="#c85a06"/><stop offset="1" stop-color="#6e2c00"/>
+    </radialGradient></defs><path class="l-voice"/><circle class="l-dot" r="11" fill="url(#sphere)"/>`)}
+</div>`;
+
+// Spins each ring in its own tilted plane at a drifting speed, lets the tilts sway, and bends the voice ring
+// by --amp, until the core leaves the page.
+function hud(core) {
+  const box = core?.querySelector(".hud");
+  if (!box) return;
+  const planes = box.querySelectorAll(".ring");
+  const layers = RINGS.map(([tx, ty, base], i) => ({ el: planes[i], tx, ty, base, a: i * 70, p: i * 2.1 }));
+  const voice = box.querySelector(".l-voice"), dot = box.querySelector(".l-dot");
+  let last = performance.now();
+  const draw = (t) => {
+    const s = t / 1000, dt = Math.min(t - last, 50) / 1000, amp = Number(core.style.getPropertyValue("--amp") || 0);
+    last = t;
+    for (const l of layers) {
+      const surge = 1 + 0.7 * Math.sin(s * 0.37 + l.p) * Math.sin(s * 0.91 + l.p * 1.7); // speeds drift in and out of step
+      l.a += l.base * (surge + amp * 2.5) * dt;
+      const x = l.tx + 9 * Math.sin(s * 0.23 + l.p), y = l.ty + 11 * Math.sin(s * 0.17 + l.p * 1.3); // the planes sway
+      l.el.style.transform = `rotateX(${x.toFixed(2)}deg) rotateY(${y.toFixed(2)}deg) rotateZ(${l.a.toFixed(2)}deg)`;
+    }
+    let d = "";
+    for (let i = 0; i < 72; i++) {
+      const th = (i / 72) * Math.PI * 2;
+      const n = 0.5 * Math.sin(3 * th + s * 1.3) + 0.3 * Math.sin(5 * th - s * 2.1 + 1) + 0.2 * Math.sin(9 * th + s * 3.7);
+      const r = 38 + n * (0.8 + amp * 6);
+      d += `${i ? "L" : "M"}${(r * Math.cos(th)).toFixed(2)} ${(r * Math.sin(th)).toFixed(2)}`;
+    }
+    voice.setAttribute("d", d + "Z");
+    dot.setAttribute("r", (11 * (1 + amp * 0.5)).toFixed(2));
+  };
+  if (reduced) return draw(0); // still picture, no turning
+  const frame = (t) => { if (core.isConnected) { draw(t); requestAnimationFrame(frame); } };
+  requestAnimationFrame(frame);
+}
+
+// Drives --amp (0..1) with a fake voice: a new syllable level every 70-130ms, sometimes a pause.
+function speak(core, ms) {
+  if (reduced || !core) return;
+  core.classList.add("speaking");
+  const end = performance.now() + ms;
+  let amp = 0, target = 0, next = 0;
+  const tick = (t) => {
+    if (t > next) {
+      target = t > end || Math.random() < 0.15 ? 0 : 0.25 + Math.random() * 0.75;
+      next = t + 70 + Math.random() * 60;
+    }
+    amp += (target - amp) * 0.25;
+    core.style.setProperty("--amp", amp.toFixed(3));
+    if (t < end || amp > 0.01) requestAnimationFrame(tick);
+    else { core.classList.remove("speaking"); core.style.removeProperty("--amp"); }
+  };
+  requestAnimationFrame(tick);
 }
 
 // When a bubble names a tank, draw a line from the core to that tank as the bubble appears.
@@ -73,7 +180,9 @@ const FORMS = {
   tank: { cmd: "save_tank", arg: "tank", title: ["Thêm bể", "Sửa bể"], fields: [
     ["name", "Tên bể", "text", "required"], ["kind", "Loại bể", KIND],
     ["length_cm", "Dài (cm)", "number", SIZE], ["width_cm", "Rộng (cm)", "number", SIZE], ["height_cm", "Cao (cm)", "number", SIZE],
-    ["volume_l", "Thể tích (lít)", "number", SIZE], ["setup_date", "Ngày setup", "date"], ["notes", "Ghi chú", "textarea"]] },
+    ["volume_l", "Thể tích (lít)", "number", SIZE], ["setup_date", "Ngày setup", "date"], ["notes", "Ghi chú", "textarea"]],
+    groups: [["Bể là gì", ["name", "kind"]], ["Kích thước", ["length_cm", "width_cm", "height_cm", "volume_l"], "cols3"],
+      ["Lịch sử", ["setup_date", "notes"]]] },
   device: { cmd: "save_device", arg: "device", title: ["Thêm thiết bị", "Sửa thiết bị"], fields: [
     ["name", "Tên thiết bị", "text", "required"], ["purpose", "Công dụng", PURPOSE], ["connection", "Kết nối", LINK],
     ["brand", "Hãng", "text"], ["model", "Model", "text"], ["purchase_date", "Ngày mua", "date"], ["notes", "Ghi chú", "textarea"]] },
@@ -85,12 +194,13 @@ const FORMS = {
 
 function field([key, label, type, extra = ""], value) {
   const id = `f-${key}`;
-  let input;
-  if (typeof type === "object")
-    input = `<select id="${id}" name="${key}">${Object.entries(type).map(([v, l]) => `<option value="${v}"${v === value ? " selected" : ""}>${l}</option>`).join("")}</select>`;
-  else if (type === "textarea") input = `<textarea id="${id}" name="${key}" rows="2">${esc(value)}</textarea>`;
-  else input = `<input id="${id}" name="${key}" type="${type}" value="${esc(value)}" ${extra} aria-describedby="form-error">`;
-  return `<label for="${id}">${label}</label>${input}`;
+  if (typeof type === "object") // few fixed choices: a segmented radio group instead of a dropdown
+    return `<fieldset class="f seg"><legend>${label}</legend><div class="opts">${Object.entries(type).map(([v, l]) =>
+      `<label><input type="radio" name="${key}" value="${v}"${v === value ? " checked" : ""}><span>${l}</span></label>`).join("")}</div></fieldset>`;
+  const input = type === "textarea"
+    ? `<textarea id="${id}" name="${key}" rows="3" placeholder="Không bắt buộc">${esc(value)}</textarea>`
+    : `<input id="${id}" name="${key}" type="${type}" value="${esc(value)}" ${extra} aria-describedby="form-error">`;
+  return `<div class="f"><label for="${id}">${label}</label>${input}</div>`;
 }
 
 /** One form value for the core. Throws a Vietnamese message for numbers the core cannot even parse. */
@@ -111,13 +221,25 @@ function readField(form, [key, label, type, extra = ""]) {
 /** Opens the add/edit dialog; resolves to the saved record, or null if cancelled. */
 function openForm(type, record) {
   const spec = FORMS[type], dlg = document.getElementById("form");
-  dlg.innerHTML = `<form class="sheet" novalidate>
+  const byKey = Object.fromEntries(spec.fields.map((f) => [f[0], f]));
+  const groups = (spec.groups ?? [[null, Object.keys(byKey)]]).map(([title, keys, cls = ""]) =>
+    `<div class="grp ${cls}">${title ? `<h3>${title}</h3>` : ""}${keys.map((k) => field(byKey[k], record[k])).join("")}</div>`);
+  dlg.innerHTML = `<form class="drawer" novalidate>
       <h2 id="form-title">${spec.title[record.id == null ? 0 : 1]}</h2>
-      <div class="fields">${spec.fields.map((f) => field(f, record[f[0]])).join("")}</div>
+      <div class="fields">${groups.join("")}</div>
       <p id="form-error" class="error" role="alert"></p>
       <div class="actions"><button type="button" class="pill" data-cancel>Hủy</button><button class="pill primary">Lưu</button></div>
     </form>`;
   const form = dlg.querySelector("form"), save = form.querySelector(".primary");
+  const vol = form.elements.volume_l;
+  if (vol) { // show the estimate the detail page will use while the volume is left empty
+    const hint = () => {
+      const dims = ["length_cm", "width_cm", "height_cm"].map((k) => Number(form.elements[k].value));
+      vol.placeholder = dims.every((n) => n > 0) ? `≈ ${litres(dims)} lít ước tính — để trống nếu đúng` : "";
+    };
+    form.addEventListener("input", hint);
+    hint();
+  }
   return new Promise((resolve) => {
     dlg.onclose = () => resolve(null);
     form.querySelector("[data-cancel]").onclick = () => dlg.close();
@@ -153,12 +275,14 @@ function confirmDelete(text) {
 const TABS = { overview: "Tổng quan", devices: "Thiết bị", animals: "Sinh vật", plants: "Cây" };
 const daysSince = (d) => Math.floor((Date.now() - new Date(d + "T00:00:00")) / 86400000);
 
+const litres = ([l, w, h]) => Math.round((l * w * h) / 1000); // glass volume, no allowance for substrate
+
 function sizeLine(t) {
   const dims = [t.length_cm, t.width_cm, t.height_cm];
   const full = dims.every((v) => v != null);
   const parts = full ? [`${dims.join(" × ")} cm`] : [];
   if (t.volume_l != null) parts.push(`${t.volume_l} L`);
-  else if (full) parts.push(`≈ ${Math.round((dims[0] * dims[1] * dims[2]) / 1000)} L (ước tính)`);
+  else if (full) parts.push(`≈ ${litres(dims)} L (ước tính)`);
   return parts.join(" · ");
 }
 

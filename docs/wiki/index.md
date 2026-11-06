@@ -14,6 +14,10 @@ Cách dùng wiki: xem [README.md](README.md). Nhật ký phiên: [log.md](log.md
 
 - [domain/tank-health-signals.md](domain/tank-health-signals.md) — đánh giá sức khỏe bể từ dữ liệu sẵn có, không đo tay, không cảm biến đắt.
 
+## Thương hiệu
+
+- [../brand/README.md](../brand/README.md) — logo Bọt (chữ Ọ nặng): file, màu, cỡ tối thiểu, điều cấm; cách sinh lại icon Tauri.
+
 ## Engineering
 
 - [engineering/motion-references.md](engineering/motion-references.md) — prompt motion đáng dùng (prompt-motion.com) và nguyên lý chuyển động cho UI HUD.

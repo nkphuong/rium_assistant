@@ -12,6 +12,41 @@ Mới nhất ở trên. Mỗi phiên một mục:
 - Phiên sau: ...
 ```
 
+## 2026-11-06 (tối) — Logo Bọt
+
+- Làm được: thay logo mặc định của Tauri. Ba hướng (bong bóng thoại / chữ b nổi
+  bọt / Ọ nặng), người dùng chọn **Ọ nặng**. Bộ logo trong `docs/brand/`
+  (biểu tượng, bản cỡ nhỏ, chữ "bọt", bản một màu, icon app); sinh lại
+  `src-tauri/icons/` bằng `npx tauri icon`.
+- Quyết định: màu logo dùng lại `--accent #4cb3f0` / `--ground #0c0d0f`; chữ ọ
+  trong wordmark chính là biểu tượng nên không có lockup ghép.
+- Học được: [../brand/README.md](../brand/README.md).
+- Vướng mắc: `presentation_board.py` tính đường dẫn SVG theo thư mục chứa spec
+  JSON, phải đặt spec cạnh file SVG. Shell của agent không có `cargo` trong PATH:
+  build bằng PowerShell sau `$env:Path = "$env:USERPROFILE\.cargo\bin;" + $env:Path`.
+- Sau đó (nhánh `feat/light-theme-drawer-form`): sửa dialog lệch trái (reset
+  `* { margin: 0 }` xóa `margin: auto` của dialog); người dùng chọn bộ màu sáng
+  **"Nước ngày"** (`--accent #1d7fc4`) thay nền đen, và form thêm/sửa thành
+  **ngăn trượt bên phải**: nhóm có tiêu đề, select → dãy nút radio, D×R×C một
+  hàng, ô thể tích gợi ý ước tính (cùng công thức `litres()` của trang chi tiết).
+- Lõi trợ lý "nói" (kiểu HUD): `speak()` trong `main.js` đặt `--amp` theo giọng
+  giả (âm tiết 70–130ms, 15% ngắt) suốt ~65ms/ký tự của bong bóng. Người dùng
+  muốn "sống", không tròn hoàn hảo → lõi là SVG `hud()`: tâm tròn; viền giọng
+  méo theo nhiễu (mạnh khi nói); 3 lớp cung/vạch dash không đều, mỗi lớp quay
+  tốc độ trôi riêng (tích hai sin lệch pha), tăng tốc khi nói. Reduced motion: ảnh tĩnh.
+  Rồi 3D + cam: mỗi vòng là một mặt phẳng SVG riêng, CSS 3D (`perspective` +
+  `preserve-3d`, góc nghiêng chao theo sin) — không thêm thư viện; tâm là quả cầu
+  `radialGradient`. Màu riêng của trợ lý `--core #f2780c` (lõi, đường chỉ, lõi
+  mini); UI còn lại giữ `--accent` xanh. Thêm lớp: 8 mặt phẳng trong mảng `RINGS`
+  (nghiêng x, y, tốc độ, hình SVG) + mặt giọng/quả cầu; lề lõi 26px cho vòng ngoài.
+  Rồi cam cháy `--core #c85a06`, quả cầu bớt bóng; 11 lớp, nét dày/đậm hơn; đệm dọc dải thẻ 40px.
+- Bấm vào lõi → Bọt nói câu kế tiếp (`chat()` trong `main.js`): câu briefing thật,
+  số bể, rồi `SMALL_TALK` (không chứa số liệu); bỏ qua khi đang nói; giữ tối đa 3
+  bong bóng thêm. Lõi giờ là `<button aria-label="Nói chuyện với Bọt">`.
+  Học được: kiểm thử bằng cách đổi hash 2 lần liên tiếp gây 2 lần render chồng → kết quả nhiễu; đo trên trang đã ổn định.
+- Phiên sau: tùy chọn đặt wordmark vào header app; tra cứu nhãn hiệu trước khi
+  công bố; ô ngày vẫn hiện `mm/dd/yyyy` theo locale WebView2.
+
 ## 2026-11-06 (chiều) — Thiết kế, đặt tên, triển khai MVP 1
 
 - Làm được: review thiết kế bằng taste-skill (style true-black flat, bảng màu

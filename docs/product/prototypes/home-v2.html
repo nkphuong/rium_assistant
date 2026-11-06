@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Bọt — prototype trò chuyện</title>
+<style>
+@font-face { font-family: "Inter"; src: url("../../../src/fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; }
+:root {
+  --ground: #f3f5f6; --surface: #fff; --raised: #e6ebef; --control: #cfd6dc;
+  --text: #12171c; --muted: #4e5a65; --faint: #6b7680;
+  --accent: #1d7fc4; --accent-rgb: 29 127 196;
+  --core: #c85a06; --core-rgb: 200 90 6;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); --ease-io: cubic-bezier(0.76, 0, 0.24, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; }
+body { background: var(--ground); color: var(--text); font: 400 14px/20px "Inter", system-ui, sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; }
+.top { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 29px; border-bottom: 1px solid #e3e8ec; }
+.top b { font-size: 16px; }
+.switch { display: flex; gap: 4px; background: var(--raised); border-radius: 12px; padding: 4px; }
+.switch button { border: 0; background: none; font: inherit; padding: 6px 12px; border-radius: 9px; color: var(--muted); cursor: pointer; }
+.switch button.on { background: var(--surface); color: var(--text); font-weight: 500; }
+.hint { color: var(--faint); font-size: 12px; }
+
+.stage { position: relative; height: calc(100% - 52px); }
+
+/* ---- the core: fixed spot, never moves ---- */
+.core { position: absolute; left: 50%; top: 42%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border: 0; padding: 0;
+  background: none; border-radius: 50%; cursor: pointer; perspective: 360px; z-index: 3; transition: transform 700ms var(--ease-io); }
+.core .halo { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, rgb(var(--core-rgb) / .26), rgb(var(--core-rgb) / 0) 70%);
+  animation: breathe 4.2s var(--ease-io) infinite; }
+@keyframes breathe { 0%,100% { opacity: .55; transform: scale(1.45); } 50% { opacity: 1; transform: scale(1.7); } }
+.hud { position: absolute; inset: 0; transform-style: preserve-3d; }
+.hud svg { position: absolute; left: -24px; top: -24px; width: 132px; height: 132px; overflow: visible; fill: none; stroke: var(--core); color: var(--core); }
+.l-voice { stroke-width: 1.5; stroke-linejoin: round; }
+
+/* ---- tanks: aquarium-shaped tiles, blue = water; Bọt is orange ---- */
+.tanks { position: absolute; inset: 0; pointer-events: none; }
+.tank { position: absolute; width: 220px; pointer-events: auto; cursor: pointer;
+  transition: transform 800ms var(--ease-io); }
+.tank .glass { height: 92px; border-radius: 6px 6px 10px 10px; position: relative; overflow: hidden;
+  background: rgb(var(--accent-rgb) / .10); box-shadow: inset 0 0 0 2px rgb(var(--accent-rgb) / .35); }
+.tank .glass::before { content: ""; position: absolute; left: 0; right: 0; top: 14px; height: 2px; background: rgb(var(--accent-rgb) / .45); } /* water line */
+.tank .glass::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: #d9c7a6; } /* substrate */
+.tank .glass i { position: absolute; bottom: 16px; width: 6px; border-radius: 3px 3px 0 0; background: #4f9a63; } /* plants */
+.tank .meta { padding: 10px 2px 0; }
+.tank .meta b { display: block; font-size: 15px; font-weight: 600; }
+.tank .meta span { color: var(--muted); font-size: 13px; }
+.tank .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3a9a5b; margin-right: 6px; }
+.tank .dot.warn { background: #a86a00; }
+
+/* ---- the talk space, opening out of the core ---- */
+.talk { position: absolute; top: 0; bottom: 0; left: calc(50% + 96px); right: 48px; display: flex; flex-direction: column; justify-content: center;
+  clip-path: circle(0 at -96px 42%); transition: clip-path 900ms var(--ease-io); pointer-events: none; }
+body.talking .talk { clip-path: circle(160% at -96px 42%); pointer-events: auto; }
+
+/* style A: spoken words, like subtitles — no boxes */
+.say-a .line { font-size: 30px; line-height: 40px; font-weight: 500; letter-spacing: -0.015em; max-width: 26ch; color: var(--text); margin-bottom: 18px;
+  transition: opacity 600ms ease, transform 600ms var(--ease-out); }
+.say-a .line.past { opacity: .35; transform: scale(.94); transform-origin: left; }
+.say-a .line .w { opacity: 0; transition: opacity 160ms ease; }
+.say-a .line .w.on { opacity: 1; }
+.say-a .tag { color: var(--core); font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+/* style B: a HUD readout tethered to the core */
+.say-b { position: relative; padding: 28px 32px; max-width: 560px; }
+.say-b::before { content: ""; position: absolute; left: -54px; top: 50%; width: 54px; height: 2px; background: var(--core); transform-origin: left;
+  transform: scaleX(0); transition: transform 500ms 500ms var(--ease-out); }
+body.talking .say-b::before { transform: scaleX(1); }
+.say-b .frame { position: absolute; inset: 0; pointer-events: none; }
+.say-b .frame span { position: absolute; width: 22px; height: 22px; border-color: var(--core); border-style: solid; border-width: 0; }
+.say-b .frame span:nth-child(1) { left: 0; top: 0; border-left-width: 3px; border-top-width: 3px; }
+.say-b .frame span:nth-child(2) { right: 0; top: 0; border-right-width: 3px; border-top-width: 3px; }
+.say-b .frame span:nth-child(3) { left: 0; bottom: 0; border-left-width: 3px; border-bottom-width: 3px; }
+.say-b .frame span:nth-child(4) { right: 0; bottom: 0; border-right-width: 3px; border-bottom-width: 3px; }
+.say-b .greet { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 18px; }
+.say-b .item { display: flex; gap: 12px; align-items: baseline; padding: 10px 0; font-size: 16px; line-height: 24px;
+  opacity: 0; transform: translateX(-12px); transition: opacity 400ms ease, transform 500ms var(--ease-out); }
+.say-b .item.on { opacity: 1; transform: none; }
+.say-b .item b { color: var(--core); font-weight: 600; min-width: 18px; }
+.say-b .greet .w { opacity: 0; transition: opacity 160ms ease; } .say-b .greet .w.on { opacity: 1; }
+
+.close { position: absolute; right: 48px; top: 24px; border: 1px solid var(--control); background: var(--surface); border-radius: 999px; height: 36px; padding: 0 16px; font: inherit; cursor: pointer;
+  opacity: 0; transition: opacity 300ms ease; pointer-events: none; }
+body.talking .close { opacity: 1; pointer-events: auto; transition-delay: 600ms; }
+.caption { position: absolute; left: 50%; top: calc(42% + 78px); transform: translateX(-50%); color: var(--faint); font-size: 13px; transition: opacity 300ms; }
+body.talking .caption { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <b>Bọt</b>
+  <span class="hint">Prototype — bấm vào Bọt, bấm lại hoặc Esc để quay về</span>
+  <div class="switch" role="group" aria-label="Kiểu lời nói"><button class="on" data-style="a">A · Phụ đề</button><button data-style="b">B · Bảng HUD</button></div>
+</header>
+<main class="stage">
+  <div class="tanks" id="tanks"></div>
+  <button class="core" id="core" aria-label="Nói chuyện với Bọt"><i class="halo"></i><div class="hud" id="hud"></div></button>
+  <p class="caption">Bấm để nghe Bọt</p>
+  <section class="talk" id="talk" aria-live="polite"></section>
+  <button class="close" id="close">Về các bể</button>
+</main>
+<script>
+// Sample data: "Hồ phi tần" is real; the other two are made up for density.
+const TANKS = [
+  { name: "Hồ phi tần", kind: "Hồ cá · 167 × 60 × 68 cm", status: "Đủ hồ sơ", warn: false },
+  { name: "Thủy sinh 60", kind: "Hồ thủy sinh · 60 × 36 × 36 cm", status: "Chưa có ngày setup", warn: true },
+  { name: "Terra nhỏ", kind: "Terrarium · 30 × 30 × 45 cm", status: "Đủ hồ sơ", warn: false },
+];
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function greeting(h = new Date().getHours()) {
+  if (h < 5) return "Khuya rồi, bạn vẫn còn thức à?";
+  if (h < 11) return "Chào buổi sáng!";
+  if (h < 13) return "Chào buổi trưa!";
+  if (h < 18) return "Chào buổi chiều!";
+  if (h < 22) return "Chào buổi tối!";
+  return "Muộn rồi, mình kể nhanh nhé.";
+}
+const report = () => [
+  `Bạn đang có ${TANKS.length} bể.`,
+  ...TANKS.map((t) => t.warn ? `${t.name}: ${t.status.toLowerCase()}, bạn nhập thêm nhé.` : `${t.name} ổn, hồ sơ đầy đủ.`),
+];
+
+/* ---------- tanks: rest = a row under the core; talking = a column on the left ---------- */
+const tanksEl = document.getElementById("tanks");
+TANKS.forEach((t, i) => {
+  const plants = Array.from({ length: 5 }, (_, k) => `<i style="left:${20 + k * 40 + (i * 13 % 17)}px;height:${18 + ((k * 7 + i * 5) % 22)}px"></i>`).join("");
+  tanksEl.insertAdjacentHTML("beforeend", `<div class="tank"><div class="glass">${plants}</div>
+    <div class="meta"><b>${t.name}</b><span><span class="dot${t.warn ? " warn" : ""}"></span>${t.kind}</span></div></div>`);
+});
+function placeTanks(talking) {
+  const W = innerWidth, H = innerHeight - 52, els = [...tanksEl.children];
+  els.forEach((el, i) => {
+    let x, y;
+    if (!talking) { const total = els.length * 220 + (els.length - 1) * 28; x = W / 2 - total / 2 + i * 248; y = H * 0.42 + 120; }
+    else { x = 48; y = H / 2 - (els.length * 150) / 2 + i * 150; }
+    el.style.transform = `translate(${x}px, ${y}px)`;
+  });
+}
+
+/* ---------- core HUD (same as the app) ---------- */
+const RINGS = [
+  [0, 0, -5, `<circle r="42" stroke-width="4" opacity=".4" stroke-dasharray="0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 2.4 0.8 30"/>`],
+  [40, -35, 6, `<circle r="61" stroke-width="1.5" opacity=".7" stroke-dasharray="150 8 200 25"/>`],
+  [-65, 15, 11, `<circle r="64" stroke-width="2.5" opacity=".65" stroke-dasharray="3 3 3 3 3 3 60 12 30 18 3 3 3 3 90 40"/>`],
+  [60, 0, -9, `<circle r="56" stroke-width="5" opacity=".6" stroke-dasharray="1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 2.6 1.2 24 1.2 2.6 1.2 2.6 1.2 2.6 1.2 40 1.2 2.6 1.2 60"/>`],
+  [-20, -60, -18, `<circle r="52" stroke-width="5" opacity=".85" stroke-dasharray="10 70 4 40 18 95 6 84"/>`],
+  [18, 62, 14, `<circle r="48" stroke-width="3" opacity=".9" stroke-dasharray="34 6 6 6 52 14 3 9 20 40 8 6"/>`],
+  [35, -70, -33, `<circle r="44" stroke-width="1.5" opacity=".75" stroke-dasharray="70 8 2 8 2 8 40 138"/>`],
+  [75, 40, -26, `<circle r="36" stroke-width="3" stroke-linecap="round" opacity=".8" stroke-dasharray="0 7"/>`],
+  [-52, 28, 40, `<circle r="30" stroke-width="2.5" stroke-dasharray="36 10 10 132.5"/>`],
+  [10, -45, -60, `<circle r="24" stroke-width="2" opacity=".85" stroke-dasharray="20 8 6 116.8"/>`],
+  [60, 60, 55, `<circle cy="-44" r="3" fill="currentColor" stroke="none"/>`],
+];
+const plane = (cls, body) => `<svg class="${cls}" viewBox="-66 -66 132 132">${body}</svg>`;
+const core = document.getElementById("core"), hudEl = document.getElementById("hud");
+hudEl.innerHTML = RINGS.map((r) => plane("ring", r[3])).join("") + plane("face", `<defs><radialGradient id="sphere" cx="0.4" cy="0.36" r="0.7">
+  <stop offset="0" stop-color="#e08a3c"/><stop offset="0.5" stop-color="#c85a06"/><stop offset="1" stop-color="#6e2c00"/></radialGradient></defs>
+  <path class="l-voice"/><circle class="l-dot" r="11" fill="url(#sphere)"/>`);
+let amp = 0, target = 0, talkingUntil = 0;
+const layers = RINGS.map(([tx, ty, base], i) => ({ el: hudEl.querySelectorAll(".ring")[i], tx, ty, base, a: i * 70, p: i * 2.1 }));
+const voice = hudEl.querySelector(".l-voice"), dot = hudEl.querySelector(".l-dot");
+let last = performance.now(), nextSyl = 0;
+function frame(t) {
+  const s = t / 1000, dt = Math.min(t - last, 50) / 1000; last = t;
+  if (t > nextSyl) { target = t > talkingUntil || Math.random() < 0.15 ? 0 : 0.25 + Math.random() * 0.75; nextSyl = t + 70 + Math.random() * 60; }
+  amp += (target - amp) * 0.25;
+  for (const l of layers) {
+    const surge = 1 + 0.7 * Math.sin(s * 0.37 + l.p) * Math.sin(s * 0.91 + l.p * 1.7);
+    l.a += l.base * (surge + amp * 2.5) * dt;
+    l.el.style.transform = `rotateX(${l.tx + 9 * Math.sin(s * .23 + l.p)}deg) rotateY(${l.ty + 11 * Math.sin(s * .17 + l.p * 1.3)}deg) rotateZ(${l.a}deg)`;
+  }
+  let d = "";
+  for (let i = 0; i < 72; i++) {
+    const th = i / 72 * Math.PI * 2, n = .5 * Math.sin(3 * th + s * 1.3) + .3 * Math.sin(5 * th - s * 2.1 + 1) + .2 * Math.sin(9 * th + s * 3.7), r = 38 + n * (.8 + amp * 6);
+    d += `${i ? "L" : "M"}${(r * Math.cos(th)).toFixed(2)} ${(r * Math.sin(th)).toFixed(2)}`;
+  }
+  voice.setAttribute("d", d + "Z"); dot.setAttribute("r", (11 * (1 + amp * .5)).toFixed(2));
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- speaking: words appear at speech pace while the core's voice moves ---------- */
+const talk = document.getElementById("talk");
+let style = "a", run = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const words = (text) => text.split(" ").map((w) => `<span class="w">${w}</span>`).join(" ");
+async function sayWords(el, id) {
+  for (const w of el.querySelectorAll(".w")) {
+    if (id !== run) return;
+    talkingUntil = performance.now() + 400;
+    w.classList.add("on");
+    await sleep(reduced ? 0 : 60 * (w.textContent.length + 1));
+  }
+}
+async function speakAll() {
+  const id = ++run, lines = [greeting(), ...report()];
+  await sleep(700); // let the space open first
+  if (style === "a") {
+    talk.innerHTML = `<div class="say-a"><p class="tag">Bọt</p></div>`;
+    const box = talk.firstChild;
+    for (const text of lines) {
+      if (id !== run) return;
+      box.querySelectorAll(".line").forEach((l) => l.classList.add("past"));
+      [...box.querySelectorAll(".line.past")].slice(0, -2).forEach((l) => l.remove());
+      box.insertAdjacentHTML("beforeend", `<p class="line">${words(text)}</p>`);
+      await sayWords(box.lastChild, id);
+      await sleep(500);
+    }
+  } else {
+    const [hello, ...rest] = lines;
+    talk.innerHTML = `<div class="say-b"><div class="frame"><span></span><span></span><span></span><span></span></div>
+      <p class="greet">${words(hello)}</p>${rest.map((r, i) => `<p class="item"><b>${i + 1 > 1 ? "·" : "›"}</b><span>${r}</span></p>`).join("")}</div>`;
+    await sayWords(talk.querySelector(".greet"), id);
+    for (const it of talk.querySelectorAll(".item")) {
+      if (id !== run) return;
+      await sleep(250); it.classList.add("on");
+      talkingUntil = performance.now() + it.textContent.length * 60;
+      await sleep(it.textContent.length * 60);
+    }
+  }
+}
+
+function open() { document.body.classList.add("talking"); placeTanks(true); speakAll(); }
+function shut() { run++; talkingUntil = 0; document.body.classList.remove("talking"); placeTanks(false); }
+core.addEventListener("click", () => document.body.classList.contains("talking") ? shut() : open());
+document.getElementById("close").addEventListener("click", shut);
+addEventListener("keydown", (e) => e.key === "Escape" && shut());
+document.querySelectorAll(".switch button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".switch button").forEach((x) => x.classList.toggle("on", x === b));
+  style = b.dataset.style;
+  if (document.body.classList.contains("talking")) speakAll();
+}));
+addEventListener("resize", () => placeTanks(document.body.classList.contains("talking")));
+placeTanks(false);
+</script>
+</body>
+</html>
