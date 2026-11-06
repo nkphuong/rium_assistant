@@ -1,5 +1,6 @@
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{params, Connection, OptionalExtension};
+use crate::briefing::{missing, status_text, Missing};
 use serde::{Deserialize, Serialize};
 
 pub type AppResult<T> = Result<T, String>;
@@ -220,6 +221,36 @@ pub fn get_tank(c: &Connection, id: i64) -> AppResult<TankDetail> {
     })
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct TankOverview {
+    pub tank: Tank,
+    pub devices: i64,
+    /// Total individuals (sum of counts).
+    pub animals: i64,
+    pub species: i64,
+    pub plants: i64,
+    pub missing: Vec<Missing>,
+    pub status: String,
+}
+
+pub fn list_tanks(c: &Connection) -> AppResult<Vec<TankOverview>> {
+    let mut st = c.prepare(&format!(
+        "SELECT {TANK_COLS},
+           (SELECT count(*) FROM devices d WHERE d.tank_id = t.id),
+           (SELECT coalesce(sum(count),0) FROM animals a WHERE a.tank_id = t.id),
+           (SELECT count(*) FROM animals a WHERE a.tank_id = t.id),
+           (SELECT count(*) FROM plants p WHERE p.tank_id = t.id)
+         FROM tanks t ORDER BY id")).map_err(db_err)?;
+    let out = st.query_map([], |r| {
+        let tank = tank_from_row(r)?;
+        let (devices, animals, species, plants) = (r.get(9)?, r.get(10)?, r.get(11)?, r.get(12)?);
+        let missing = missing(tank.kind, devices, animals, plants);
+        let status = status_text(&missing);
+        Ok(TankOverview { tank, devices, animals, species, plants, missing, status })
+    }).map_err(db_err)?.collect::<rusqlite::Result<Vec<_>>>().map_err(db_err);
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,5 +324,17 @@ mod tests {
         assert!(get_tank(&c, id).unwrap().animals.is_empty());
         let e = save_plant(&c, Plant { id: None, tank_id: id, name: " ".into(), layer: Layer::Unknown, notes: None }).unwrap_err();
         assert_eq!(e, "Tên cây không được để trống");
+    }
+
+    #[test]
+    fn list_tanks_counts() {
+        let c = db::open_in_memory().unwrap();
+        let id = save_tank(&c, tank("Hồ cá 1", TankKind::Fish)).unwrap().id.unwrap();
+        for (s, n) in [("Neon", 12), ("Cá chuột", 6)] {
+            save_animal(&c, Animal { id: None, tank_id: id, species: s.into(), count: n, notes: None }).unwrap();
+        }
+        let l = list_tanks(&c).unwrap();
+        assert_eq!((l[0].animals, l[0].species, l[0].devices), (18, 2, 0));
+        assert_eq!(l[0].status, "Chưa có thiết bị");
     }
 }

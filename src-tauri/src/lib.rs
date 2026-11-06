@@ -1,4 +1,5 @@
 mod db;
+mod briefing;
 mod tanks;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
